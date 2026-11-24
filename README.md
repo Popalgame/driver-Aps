@@ -95,10 +95,8 @@ rules-tests/          # тести правил Firestore (npm run test:rules)
 
 ## Публікація (Firebase Hosting)
 
-Пуш у `main` → GitHub Actions запускає перевірки. Деплой на Firebase вмикається,
-коли в репозиторії налаштовано:
-
-- змінну `FIREBASE_PROJECT_ID` (Settings → Secrets and variables → Actions → Variables);
-- секрет `FIREBASE_SERVICE_ACCOUNT` (JSON сервісного акаунта Firebase).
-
-Без них сайт не публікується — апка працює лише локально.
+Пуш у `main` → GitHub Actions запускає перевірки й публікує `site/` на
+https://driver-aps.web.app. Для публікації в репозиторії потрібен секрет
+`FIREBASE_SERVICE_ACCOUNT` (Settings → Secrets and variables → Actions) —
+JSON-ключ сервісного акаунта з Firebase Console → Project settings → Service accounts.
+Без нього перевірки проходять, а публікація пропускається.

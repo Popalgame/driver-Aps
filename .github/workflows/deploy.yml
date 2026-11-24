@@ -18,16 +18,22 @@ jobs:
       - run: npm test
   deploy:
     needs: check
-    # Деплой вмикається, коли в репозиторії є змінна FIREBASE_PROJECT_ID
-    # і секрет FIREBASE_SERVICE_ACCOUNT (див. README).
-    if: github.event_name != 'pull_request' && vars.FIREBASE_PROJECT_ID != ''
+    # Публікація на https://driver-aps.web.app — вмикається, коли в репозиторії
+    # є секрет FIREBASE_SERVICE_ACCOUNT (див. README).
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - if: env.HAS_KEY != 'true'
+        run: echo "::notice::Секрет FIREBASE_SERVICE_ACCOUNT не задано — публікацію пропущено."
+      - if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v4
+      - if: env.HAS_KEY == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
-          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          projectId: driver-aps
           entryPoint: site
