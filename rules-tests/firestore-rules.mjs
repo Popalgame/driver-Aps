@@ -120,3 +120,34 @@ test('керівник додає водіїв, підтверджує й зак
   await assertFails(updateDoc(doc(db, 'users/boss2'), { role: 'disabled' }));
   await assertFails(updateDoc(doc(db, 'users/boss'), { role: 'driver' }));
 });
+
+const odoDoc = (uid, extra = {}) => ({ uid, type: 'odo', at: 1000, km: 184520, liters: null, amount: null, note: '', updatedAt: 2, ...extra });
+const fuelDoc = (uid, extra = {}) => ({ uid, type: 'fuel', at: 1000, km: null, liters: 45.5, amount: 280, note: 'Orlen', updatedAt: 2, ...extra });
+
+test('кілометраж: свої записи — так, чужі — ні; керівник лише читає', async () => {
+  const a = as('alice');
+  await assertSucceeds(setDoc(doc(a, 'mileage/a1'), odoDoc('alice')));
+  await assertSucceeds(setDoc(doc(a, 'mileage/a2'), fuelDoc('alice')));
+  await assertSucceeds(getDocs(query(collection(a, 'mileage'), where('uid', '==', 'alice'))));
+  await assertSucceeds(updateDoc(doc(a, 'mileage/a1'), { km: 184600, updatedAt: 3 }));
+  await assertFails(setDoc(doc(a, 'mileage/b1'), odoDoc('bob')));
+  await assertFails(getDocs(collection(a, 'mileage')));
+  const b = as('bob');
+  await assertFails(getDoc(doc(b, 'mileage/a1')));
+  await assertFails(deleteDoc(doc(b, 'mileage/a1')));
+  const m = as('boss');
+  await assertSucceeds(getDocs(collection(m, 'mileage')));
+  await assertFails(updateDoc(doc(m, 'mileage/a1'), { km: 1 }));
+  await assertSucceeds(deleteDoc(doc(a, 'mileage/a2')));
+});
+
+test('кілометраж: некоректні дані і непідтверджені користувачі', async () => {
+  const a = as('alice');
+  await assertFails(setDoc(doc(a, 'mileage/x1'), odoDoc('alice', { km: null })));
+  await assertFails(setDoc(doc(a, 'mileage/x2'), odoDoc('alice', { km: -5 })));
+  await assertFails(setDoc(doc(a, 'mileage/x3'), fuelDoc('alice', { liters: null })));
+  await assertFails(setDoc(doc(a, 'mileage/x4'), fuelDoc('alice', { type: 'wash' })));
+  await assertFails(setDoc(doc(a, 'mileage/x5'), odoDoc('alice', { extra: 1 })));
+  await assertFails(setDoc(doc(as('newbie'), 'mileage/n1'), odoDoc('newbie')));
+  await assertFails(setDoc(doc(as('gone'), 'mileage/g1'), odoDoc('gone')));
+});

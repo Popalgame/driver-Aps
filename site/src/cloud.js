@@ -186,3 +186,27 @@ export function putShift(s) {
 }
 
 export const removeShift = (id) => fb.deleteDoc(fb.doc(db, 'shifts', id));
+
+// ---------- Кілометраж і заправки ----------
+// mileage/{id} { uid, type: 'odo' | 'fuel', at, km, liters, amount, note, updatedAt }
+export function watchMileage(uid, cb, onError) {
+  let stop = null, cancelled = false;
+  ready.then(() => {
+    if (cancelled) return;
+    const q = fb.query(fb.collection(db, 'mileage'), fb.where('uid', '==', uid));
+    stop = fb.onSnapshot(q, (snap) => cb(snap.docs.map(fromDoc)), onError);
+  });
+  return () => { cancelled = true; stop?.(); };
+}
+
+// Як і зі змінами: не чекаємо сервера — onSnapshot покаже запис одразу
+export async function putMileage(uid, e) {
+  await ready;
+  const { id, ...data } = e;
+  return fb.setDoc(fb.doc(db, 'mileage', id), { ...data, uid, updatedAt: Date.now() });
+}
+
+export async function removeMileage(id) {
+  await ready;
+  return fb.deleteDoc(fb.doc(db, 'mileage', id));
+}

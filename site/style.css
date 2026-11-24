@@ -364,3 +364,35 @@ body.auth .hero { margin-bottom: 16px; }
   .p-grid { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.3fr); gap: 20px; align-items: start; }
   .p-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------- Кілометраж ---------- */
+.odo-form { display: flex; gap: 10px; margin-top: 12px; }
+.odo-field { flex: 1; position: relative; display: block; }
+.odo-field input {
+  width: 100%; padding: 14px 52px 14px 16px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); font: inherit; font-size: 26px; font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: .02em;
+}
+.odo-field input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.odo-field .unit { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600; }
+.odo-form .btn { padding: 0 22px; font-size: 17px; }
+#odoHint { margin: 10px 0 4px; }
+.odo-done { color: var(--accent-on); font-size: 14px; font-weight: 600; margin: 0; }
+.km-stats { grid-template-columns: repeat(2, 1fr); margin: 12px 0 0; }
+.km-stats .stat { background: var(--bg); }
+.km-hist .seg { margin: 12px 0 6px; }
+.km-row { cursor: pointer; }
+.km-row.fuel .t { color: #fde68a; }
+#kmDlg .fuel-only[hidden] { display: none !important; }
+@media (min-width: 700px) { .km-stats { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1100px) {
+  #mileageView:not([hidden]) {
+    display: grid; gap: 0 20px; align-items: start;
+    grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.3fr);
+    grid-template-areas: "odo hist" "stats hist" ". hist";
+  }
+  #mileageView .odo-card { grid-area: odo; }
+  #mileageView > section:nth-child(2) { grid-area: stats; }
+  #mileageView .km-hist { grid-area: hist; }
+  .km-stats { grid-template-columns: repeat(2, 1fr); }
+}

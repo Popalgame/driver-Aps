@@ -2,7 +2,7 @@
 // .xlsx — це ZIP-архів з XML-файлами; тут архів без стиснення (метод «store»).
 //
 // buildXlsx([{ name, columns: [{ header, width, type }], rows: [[...]], total: { label, sum: [colIndex…] } }])
-// type: 'text' | 'date' | 'time' | 'datetime' | 'duration' (мс) | 'hours' (число, 2 знаки) | 'int'
+// type: 'text' | 'date' | 'time' | 'datetime' | 'duration' (мс) | 'hours' (мс → години, 2 знаки) | 'dec' (число, 2 знаки) | 'int'
 // Значення для date/time/datetime — мітка часу в мс; для duration — тривалість у мс.
 
 const DAY_MS = 86400000;
@@ -35,6 +35,7 @@ function cell(ref, value, type) {
     case 'duration': return `<c r="${ref}" s="${S.duration}"><v>${Math.round(value / 60000) / 1440}</v></c>`; // до хвилини
     case 'hours': return `<c r="${ref}" s="${S.hours}"><v>${Math.round((value / 3600000) * 100) / 100}</v></c>`;
     case 'int': return `<c r="${ref}" s="${S.int}"><v>${value}</v></c>`;
+    case 'dec': return `<c r="${ref}" s="${S.hours}"><v>${Math.round(value * 100) / 100}</v></c>`;
     case 'wrap': return `<c r="${ref}" s="${S.wrap}" t="inlineStr"><is><t xml:space="preserve">${esc(value)}</t></is></c>`;
     default: return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(value)}</t></is></c>`;
   }
@@ -53,7 +54,7 @@ function sheetXml({ columns, rows, total }) {
       const ref = `${colName(ci)}${tr}`;
       if (ci === 0) return `<c r="${ref}" s="${S.totalText}" t="inlineStr"><is><t>${esc(total.label || 'Разом')}</t></is></c>`;
       if (total.sum?.includes(ci)) {
-        const st = { duration: S.totalDuration, hours: S.totalHours, int: S.totalInt }[c.type] ?? S.totalInt;
+        const st = { duration: S.totalDuration, hours: S.totalHours, dec: S.totalHours, int: S.totalInt }[c.type] ?? S.totalInt;
         return `<c r="${ref}" s="${st}"><f>SUM(${colName(ci)}2:${colName(ci)}${lastRow})</f></c>`;
       }
       return `<c r="${ref}" s="${S.totalText}"/>`;

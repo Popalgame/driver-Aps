@@ -27,6 +27,7 @@
     <div class="side-brand"><img src="icon.svg" alt="" width="44" height="44"><span>Driver-Aps</span></div>
     <nav class="side-nav">
       <button type="button" data-tab="driver" class="on"><span class="ico">🕒</span>Мій час</button>
+      <button type="button" data-tab="mileage"><span class="ico">🚗</span>Кілометраж</button>
       <button type="button" data-tab="manager" id="navManager" hidden><span class="ico">👥</span>Водії</button>
       <button type="button" data-tab="settings"><span class="ico">⚙️</span>Налаштування</button>
     </nav>
@@ -134,6 +135,44 @@
       <ul id="drivers" class="drivers"></ul>
       <p id="mEmpty" class="muted center" hidden>Ще немає жодного водія. Натисни «Додати водія».</p>
       <p id="mErr" class="err center"></p>
+    </div>
+
+    <!-- Кілометраж і заправки -->
+    <div id="mileageView" class="mileage" hidden>
+      <section class="card odo-card">
+        <div class="row"><h2>🚗 Кілометраж зранку</h2><span id="odoDate" class="muted small-text"></span></div>
+        <form id="odoForm" class="odo-form" novalidate>
+          <label class="odo-field">
+            <input id="odoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="напр. 184520" aria-label="Кілометраж, км">
+            <span class="unit">км</span>
+          </label>
+          <button id="odoSave" class="btn start" type="submit">Зберегти</button>
+        </form>
+        <p id="odoHint" class="muted small-text"></p>
+        <p id="odoMsg" class="msg"></p>
+        <p id="odoDone" class="odo-done" hidden>✓ Сьогодні вже записано</p>
+        <button id="odoOther" class="btn link" type="button">+ Запис за інший день</button>
+      </section>
+
+      <section class="card">
+        <div class="row"><h2 id="kmMonth">Цей місяць</h2><button id="fuelAdd" class="btn small start" type="button">⛽ + Заправка</button></div>
+        <div id="kmStats" class="stats km-stats"></div>
+      </section>
+
+      <section class="card km-hist">
+        <div class="row">
+          <h2>Історія</h2>
+          <button id="kmExport" class="btn small" type="button">⬇ Excel</button>
+        </div>
+        <div class="seg small" id="kmPeriod">
+          <button type="button" data-p="month" class="on">Цей місяць</button>
+          <button type="button" data-p="last">Минулий</button>
+          <button type="button" data-p="all">Усе</button>
+        </div>
+        <p id="kmPeriodSum" class="muted small-text"></p>
+        <ul id="kmHistory" class="history"></ul>
+        <p id="kmEmpty" class="muted">Немає записів за цей період.</p>
+      </section>
     </div>
 
     <!-- Сторінка водія (для керівника) -->
@@ -256,6 +295,25 @@
         <span>
           <button value="cancel" class="btn small" formnovalidate>Скасувати</button>
           <button value="save" class="btn small start">Зберегти</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="kmDlg">
+    <form id="kmForm" novalidate>
+      <h3 id="kmDlgTitle">Запис</h3>
+      <label>Дата <input id="kmDate" type="date"></label>
+      <label class="fuel-only">Літри <input id="kmLiters" type="text" inputmode="decimal" placeholder="напр. 45,5"></label>
+      <label class="fuel-only">Сума <input id="kmAmount" type="text" inputmode="decimal" placeholder="напр. 280"></label>
+      <label id="kmKmLabel">Кілометраж, км <input id="kmKm" type="text" inputmode="numeric"></label>
+      <label>Нотатка <span class="fuel-only">/ АЗС</span> <input id="kmNote" type="text" maxlength="200"></label>
+      <p id="kmErr" class="err"></p>
+      <div class="row">
+        <button id="kmDel" class="btn danger small" type="button">Видалити</button>
+        <span>
+          <button id="kmCancel" class="btn small" type="button">Скасувати</button>
+          <button class="btn small start" type="submit">Зберегти</button>
         </span>
       </div>
     </form>

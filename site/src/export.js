@@ -2,6 +2,7 @@
 import { breakMs, workMs, workInRange, startOfDay } from './time.js';
 import { driverStats, summarizeByDriver } from './report.js';
 import { buildXlsx, downloadXlsx } from './xlsx.js';
+import { odoRows, byMonth } from './mileage-calc.js';
 
 const wdFmt = new Intl.DateTimeFormat('uk-UA', { weekday: 'long' });
 const wdShort = new Intl.DateTimeFormat('uk-UA', { weekday: 'short' });
@@ -170,4 +171,58 @@ export function exportTeam(shifts, users, from, to, periodLabel) {
   }
   sheets.push(shiftsSheet(inRange, names, now, [from, to]));
   downloadXlsx(buildXlsx(sheets), `Driver-Aps_vodii_${isoDay(from)}_${isoDay(to - 1)}.xlsx`);
+}
+
+// ---------- Кілометраж і заправки ----------
+const monthFmt = new Intl.DateTimeFormat('uk-UA', { month: 'long', year: 'numeric' });
+
+// entries — усі записи (для «проїхано» потрібен попередній показник); у файл — лише [from, to)
+export function exportMileage(entries, from, to, name) {
+  const inP = (e) => e.at >= from && e.at < to;
+  const odo = odoRows(entries).filter(inP);
+  const fuel = entries.filter((e) => e.type === 'fuel' && inP(e)).sort((a, b) => a.at - b.at);
+  const firstMonth = startOfDay(new Date(from)); firstMonth.setDate(1);
+  const months = byMonth(entries).filter((m) => m.from >= +firstMonth && m.from < to && (m.km || m.count));
+  const sheets = [
+    {
+      name: 'Кілометраж',
+      columns: [
+        { header: 'Дата', width: 12, type: 'date' },
+        { header: 'День тижня', width: 13, type: 'text' },
+        { header: 'Кілометраж (зранку), км', width: 16, type: 'int' },
+        { header: 'Проїхано від попереднього запису, км', width: 18, type: 'int' },
+        { header: 'Нотатка', width: 30, type: 'wrap' },
+      ],
+      rows: odo.map((e) => [e.at, cap(wdFmt.format(e.at)), e.km, e.diff, e.note || '']),
+      total: { label: 'Разом', sum: [3] },
+    },
+    {
+      name: 'Заправки',
+      columns: [
+        { header: 'Дата', width: 12, type: 'date' },
+        { header: 'Час', width: 8, type: 'time' },
+        { header: 'Літри', width: 9, type: 'dec' },
+        { header: 'Сума', width: 10, type: 'dec' },
+        { header: 'Ціна за літр', width: 11, type: 'dec' },
+        { header: 'Кілометраж, км', width: 13, type: 'int' },
+        { header: 'АЗС / нотатка', width: 30, type: 'wrap' },
+      ],
+      rows: fuel.map((e) => [e.at, e.at, e.liters, e.amount, e.amount && e.liters ? e.amount / e.liters : null, e.km, e.note || '']),
+      total: { label: 'Разом', sum: [2, 3] },
+    },
+    {
+      name: 'По місяцях',
+      columns: [
+        { header: 'Місяць', width: 18, type: 'text' },
+        { header: 'Пробіг, км', width: 11, type: 'int' },
+        { header: 'Заправок', width: 10, type: 'int' },
+        { header: 'Літри', width: 9, type: 'dec' },
+        { header: 'Сума', width: 10, type: 'dec' },
+        { header: 'Середня витрата, л/100 км', width: 14, type: 'dec' },
+      ],
+      rows: months.map((m) => [cap(monthFmt.format(m.from)), m.km, m.count, m.liters, m.amount, m.per100]),
+      total: { label: 'Разом', sum: [1, 2, 3, 4] },
+    },
+  ];
+  downloadXlsx(buildXlsx(sheets), `Driver-Aps_kilometrazh_${name ? slug(name) + '_' : ''}${isoDay(from)}_${isoDay(to - 1)}.xlsx`);
 }

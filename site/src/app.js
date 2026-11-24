@@ -2,6 +2,7 @@ import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startO
 import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
 import { closeProfile } from './profile.js';
+import { startMileage, stopMileage } from './mileage.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
 import { VERSION_LABEL } from './version.js';
@@ -253,12 +254,14 @@ function show(view) {
 
 function setTab(tab) {
   for (const b of document.querySelectorAll('.side-nav button')) b.classList.toggle('on', b.dataset.tab === tab);
-  $('pageTitle').textContent = { manager: 'Водії', settings: 'Налаштування' }[tab] || 'Мій час';
+  $('pageTitle').textContent = { manager: 'Водії', settings: 'Налаштування', mileage: 'Кілометраж' }[tab] || 'Мій час';
   closeMenu();
   closeProfile();
   $('driverView').hidden = tab !== 'driver';
   $('managerView').hidden = tab !== 'manager';
   $('settingsView').hidden = tab !== 'settings';
+  $('mileageView').hidden = tab !== 'mileage';
+  if (tab === 'mileage') startMileage(profile); else stopMileage();
   if (tab === 'settings') { showSettings(profile); refreshInstall(); }
   if (tab === 'manager') {
     cloud.whenReady().then(() => { if (!$('managerView').hidden) startManager(profile); });
