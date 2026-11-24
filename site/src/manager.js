@@ -1,4 +1,5 @@
-// Панель керівника: усі водії, хто зараз у дорозі, підсумки за період, CSV.
+// Панель керівника: усі водії, хто зараз у дорозі, підсумки за період, CSV,
+// додавання водіїв, підтвердження й закриття доступу.
 import { breakMs, workMs, workInRange, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { summarizeByDriver, shiftsToCsv, downloadCsv } from './report.js';
 import * as cloud from './cloud.js';
@@ -82,10 +83,97 @@ $('mExportBtn').addEventListener('click', () => {
   downloadCsv(shiftsToCsv(inRange, names), `vodii-${isoDay(range[0])}_${isoDay(range[1] - 1)}.csv`);
 });
 
+// ---------- Додати водія ----------
+const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
+
+function genPassword() {
+  // Без схожих символів (0/O, 1/l/I), щоб легко продиктувати
+  const abc = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const rnd = crypto.getRandomValues(new Uint32Array(10));
+  return Array.from(rnd, (n) => abc[n % abc.length]).join('');
+}
+
+function openAddDriver() {
+  $('driverForm').reset();
+  $('dPass').value = genPassword();
+  $('dFields').hidden = false;
+  $('dDone').hidden = true;
+  $('dSubmit').hidden = false;
+  $('dSubmit').disabled = false;
+  $('dErr').textContent = '';
+  $('driverDlg').showModal();
+  $('dName').focus();
+}
+
+$('addDriverBtn').addEventListener('click', openAddDriver);
+$('dGen').addEventListener('click', () => { $('dPass').value = genPassword(); });
+$('dCancel').addEventListener('click', () => $('driverDlg').close());
+$('dCopy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('dCreds').textContent);
+    $('dCopy').textContent = 'Скопійовано ✓';
+  } catch {
+    $('dCopy').textContent = 'Виділи текст і скопіюй вручну';
+  }
+});
+
+$('driverForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = $('dName').value.trim();
+  const email = $('dEmail').value.trim().toLowerCase();
+  const pass = $('dPass').value.trim();
+  if (!name) { $('dErr').textContent = 'Введи ім\'я водія.'; return; }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $('dErr').textContent = 'Перевір email.'; return; }
+  if (pass.length < 6) { $('dErr').textContent = 'Пароль — щонайменше 6 символів.'; return; }
+  $('dSubmit').disabled = true;
+  $('dErr').textContent = 'Додаю…';
+  try {
+    await cloud.createDriver(name, email, pass);
+    $('dErr').textContent = '';
+    $('dCreds').textContent = `Час у дорозі\n${APP_URL}\nEmail: ${email}\nПароль: ${pass}`;
+    $('dCopy').textContent = 'Скопіювати';
+    $('dFields').hidden = true;
+    $('dDone').hidden = false;
+    $('dSubmit').hidden = true;
+  } catch (err) {
+    console.error(err);
+    $('dErr').textContent = err?.code?.startsWith('auth/') ? cloud.authError(err) : 'Помилка: ' + (err?.message || err);
+    $('dSubmit').disabled = false;
+  }
+});
+
+function setRole(uid, role, ask) {
+  if (ask && !confirm(ask)) return;
+  cloud.setUserRole(uid, role).catch(showError);
+}
+
+function renderPending() {
+  const pending = users.filter((u) => u.role === 'pending');
+  $('pendingBox').hidden = pending.length === 0;
+  const ul = $('pendingList');
+  ul.replaceChildren();
+  for (const u of pending) {
+    const li = el('li', 'pend');
+    const l = el('div');
+    l.append(el('div', 'dname', u.name || 'Без імені'), el('div', 'n', u.email || ''));
+    const btns = el('span', 'actions');
+    const ok = el('button', 'btn small start', 'Підтвердити');
+    ok.type = 'button';
+    ok.addEventListener('click', () => setRole(u.id, 'driver'));
+    const no = el('button', 'btn small danger', 'Відхилити');
+    no.type = 'button';
+    no.addEventListener('click', () => setRole(u.id, 'disabled', `Відхилити ${u.email}? Доступу не буде.`));
+    btns.append(no, ok);
+    li.append(l, btns);
+    ul.append(li);
+  }
+}
+
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
 
 function render() {
   if (!running || !range) return;
+  renderPending();
   const now = Date.now();
   const rows = summarizeByDriver(shifts, users, range[0], range[1], now);
   const list = $('drivers');
@@ -100,12 +188,15 @@ function render() {
   $('mSummary').textContent = `${periodLabel}: ${hm(total)} · у дорозі зараз: ${onShift}`;
 
   for (const r of rows) {
-    const li = el('li', 'driver card');
+    const off = r.role === 'disabled';
+    const li = el('li', 'driver card' + (off ? ' off' : ''));
     const head = el('div', 'row');
     const left = el('div');
     left.append(el('div', 'dname', r.name));
     let status = 'Не на зміні', cls = 'badge';
-    if (r.active) {
+    if (off) {
+      status = 'Доступ закрито'; cls = 'badge off';
+    } else if (r.active) {
       status = r.onBreak ? `☕ Перерва · з ${timeFmt.format(r.active.start)}` : `● У дорозі з ${timeFmt.format(r.active.start)}`;
       cls = 'badge ' + (r.onBreak ? 'pause' : 'on');
     }
@@ -130,6 +221,18 @@ function render() {
         ul.append(item);
       }
       li.append(ul);
+      if (r.role === 'driver' || off) {
+        const acts = el('div', 'actions');
+        const b = el('button', 'btn small ' + (off ? 'start' : 'danger'), off ? 'Відкрити доступ' : 'Закрити доступ');
+        b.type = 'button';
+        b.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          if (off) setRole(r.uid, 'driver');
+          else setRole(r.uid, 'disabled', `Закрити доступ для «${r.name}»? Водій не зможе записувати час. Історія збережеться.`);
+        });
+        acts.append(el('span', 'muted small-text', r.email), b);
+        li.append(acts);
+      }
     }
     li.addEventListener('click', () => {
       if (open.has(r.uid)) open.delete(r.uid); else open.add(r.uid);

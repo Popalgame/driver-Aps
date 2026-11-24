@@ -2,15 +2,17 @@
 import { breakMs, workMs, workInRange } from './time.js';
 
 // Підсумок по водіях за період [from, to).
-// Повертає [{ uid, name, email, total, count, active, onBreak, shifts }] —
-// спершу ті, хто зараз на зміні, далі за робочим часом.
+// Повертає [{ uid, name, email, role, total, count, active, onBreak, shifts }] —
+// спершу ті, хто зараз на зміні, далі за робочим часом; із закритим доступом — у кінці.
+// Користувачі, що чекають підтвердження ('pending'), і керівники до списку не входять
+// (хіба що мають зміни за період).
 export function summarizeByDriver(shifts, users, from, to, now = Date.now()) {
   const byUid = new Map();
   const row = (uid, name = '', email = '') => {
-    if (!byUid.has(uid)) byUid.set(uid, { uid, name, email, total: 0, count: 0, active: null, onBreak: false, shifts: [] });
+    if (!byUid.has(uid)) byUid.set(uid, { uid, name, email, role: '', total: 0, count: 0, active: null, onBreak: false, shifts: [] });
     return byUid.get(uid);
   };
-  for (const u of users) if (u.role !== 'manager') row(u.id ?? u.uid, u.name, u.email);
+  for (const u of users) if (u.role === 'driver' || u.role === 'disabled') row(u.id ?? u.uid, u.name, u.email);
   for (const s of shifts) {
     const r = row(s.uid, s.driverName || '');
     const ms = workInRange(s, from, to, now);
@@ -24,13 +26,20 @@ export function summarizeByDriver(shifts, users, from, to, now = Date.now()) {
       r.shifts.push(s);
     }
   }
-  for (const u of users) if (byUid.has(u.id ?? u.uid) && u.name) byUid.get(u.id ?? u.uid).name = u.name;
+  for (const u of users) {
+    const r = byUid.get(u.id ?? u.uid);
+    if (!r) continue;
+    if (u.name) r.name = u.name;
+    if (u.email) r.email = u.email;
+    r.role = u.role || '';
+  }
   const list = [...byUid.values()];
   for (const r of list) {
     r.name = r.name || 'Без імені';
     r.shifts.sort((a, b) => b.start - a.start);
   }
-  return list.sort((a, b) => (!!b.active - !!a.active) || (b.total - a.total) || a.name.localeCompare(b.name, 'uk'));
+  const off = (r) => (r.role === 'disabled' ? 1 : 0);
+  return list.sort((a, b) => (off(a) - off(b)) || (!!b.active - !!a.active) || (b.total - a.total) || a.name.localeCompare(b.name, 'uk'));
 }
 
 const timeFmt = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });

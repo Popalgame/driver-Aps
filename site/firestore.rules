@@ -1,9 +1,12 @@
 rules_version = '2';
 
 // Правила доступу «Час у дорозі».
-//   Водій    — бачить і змінює лише свої зміни та свій профіль.
-//   Керівник — (users/{uid}.role == 'manager') бачить усіх водіїв і всі зміни, лише читання.
-// Роль 'manager' ставиться вручну в Firebase Console; сам користувач її змінити не може.
+//   pending  — увійшов, але ще не підтверджений керівником: нічого не записує.
+//   driver   — бачить і змінює лише свої зміни та своє ім'я.
+//   disabled — доступ закрито керівником: нічого не записує.
+//   manager  — бачить усіх водіїв і всі зміни (лише читання), додає водіїв,
+//              підтверджує й закриває доступ.
+// Реєстрації немає. Першого керівника призначають вручну в Firebase Console.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -11,28 +14,53 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
     function isManager() {
-      return signedIn()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager';
+      return signedIn() && myRole() == 'manager';
+    }
+
+    function isActive() {
+      return signedIn() && myRole() in ['driver', 'manager'];
     }
 
     function validName(n) {
       return n is string && n.size() >= 1 && n.size() <= 60;
     }
 
+    function validProfile(d) {
+      return d.keys().hasOnly(['name', 'email', 'role', 'createdAt'])
+        && validName(d.name)
+        && d.email is string && d.email.size() <= 200
+        && d.createdAt is number;
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isManager());
 
+      // Перший вхід: профіль створюється сам, але чекає підтвердження
       allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt'])
-        && validName(request.resource.data.name)
-        && request.resource.data.email is string
-        && request.resource.data.role == 'driver'
-        && request.resource.data.createdAt is number;
+        && validProfile(request.resource.data)
+        && request.resource.data.role == 'pending';
 
-      // Можна змінити лише ім'я
+      // Керівник додає водія
+      allow create: if isManager() && request.auth.uid != uid
+        && validProfile(request.resource.data)
+        && request.resource.data.role == 'driver';
+
+      // Свій профіль: лише ім'я
       allow update: if signedIn() && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && validName(request.resource.data.name);
+
+      // Керівник: підтвердити, закрити / відновити доступ, перейменувати.
+      // Не себе й не інших керівників; керівником нікого не робить.
+      allow update: if isManager() && request.auth.uid != uid
+        && resource.data.role != 'manager'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
+        && request.resource.data.role in ['driver', 'disabled']
         && validName(request.resource.data.name);
     }
 
@@ -49,10 +77,10 @@ service cloud.firestore {
 
     match /shifts/{id} {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isManager());
-      allow create: if signedIn() && validShift(request.resource.data);
-      allow update: if signedIn() && resource.data.uid == request.auth.uid
+      allow create: if isActive() && validShift(request.resource.data);
+      allow update: if isActive() && resource.data.uid == request.auth.uid
         && validShift(request.resource.data);
-      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow delete: if isActive() && resource.data.uid == request.auth.uid;
     }
   }
 }

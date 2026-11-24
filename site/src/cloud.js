@@ -1,9 +1,11 @@
 // Firebase: вхід, профіль користувача і зміни у Firestore.
 //
 // Колекції:
-//   users/{uid}   { name, email, role: 'driver' | 'manager', createdAt }
+//   users/{uid}   { name, email, role: 'pending' | 'driver' | 'disabled' | 'manager', createdAt }
 //   shifts/{id}   { uid, driverName, start, end|null, breaks: [{start, end|null}], note, updatedAt }
-// Час — у мілісекундах. Роль 'manager' призначається вручну в Firebase Console.
+// Час — у мілісекундах. Реєстрації немає: водіїв додає керівник (createDriver).
+// Хто увійшов без профілю, отримує роль 'pending' і чекає підтвердження керівника.
+// Першу роль 'manager' призначають вручну в Firebase Console.
 import { firebaseConfig } from './firebase-config.js';
 
 const params = new URLSearchParams(location.search);
@@ -17,7 +19,6 @@ const config = useEmulator
 export const cloudEnabled = !!config;
 
 let fb, auth, db;
-let pendingName = ''; // ім'я з форми реєстрації — для першого профілю
 
 export async function initCloud() {
   fb = await import('../vendor/firebase.js');
@@ -36,65 +37,81 @@ export async function initCloud() {
 // ---------- Вхід ----------
 
 // cb(profile | null); profile = { uid, name, email, role }
+// Профіль відстежується наживо: коли керівник підтвердить або закриє доступ,
+// cb викликається знову (лише при зміні ролі).
+let stopProfile = null;
 export function onUser(cb) {
   return fb.onAuthStateChanged(auth, async (user) => {
+    stopProfile?.();
+    stopProfile = null;
     if (!user) return cb(null);
+    const fallback = { uid: user.uid, name: user.displayName || user.email, email: user.email, role: 'pending' };
     try {
-      cb(await ensureProfile(user));
+      await ensureProfile(user);
     } catch (e) {
       console.error(e);
-      cb({ uid: user.uid, name: user.displayName || user.email, email: user.email, role: 'driver', error: e });
+      return cb({ ...fallback, error: e });
     }
+    let lastRole = null;
+    stopProfile = fb.onSnapshot(fb.doc(db, 'users', user.uid), (snap) => {
+      if (!snap.exists()) return;
+      const p = { uid: user.uid, ...snap.data() };
+      if (p.role === lastRole) return;
+      lastRole = p.role;
+      cb(p);
+    }, (e) => {
+      // Після виходу слухач теж отримує помилку доступу — її ігноруємо
+      if (auth.currentUser?.uid === user.uid) cb({ ...fallback, error: e });
+    });
   });
 }
 
 async function ensureProfile(user) {
   const ref = fb.doc(db, 'users', user.uid);
   const snap = await fb.getDoc(ref);
-  if (snap.exists()) return { uid: user.uid, ...snap.data() };
+  if (snap.exists()) return;
   const profile = {
-    name: (pendingName || user.displayName || (user.email || '').split('@')[0] || 'Водій').slice(0, 60),
+    name: (user.displayName || (user.email || '').split('@')[0] || 'Водій').slice(0, 60),
     email: user.email || '',
-    role: 'driver',
+    role: 'pending',
     createdAt: Date.now(),
   };
   await fb.setDoc(ref, profile);
-  return { uid: user.uid, ...profile };
-}
-
-export async function register(name, email, password) {
-  // Профіль у users/ створює onUser → ensureProfile; ім'я передаємо через pendingName,
-  // бо onAuthStateChanged спрацьовує раніше, ніж встигне updateProfile.
-  pendingName = name;
-  try {
-    const { user } = await fb.createUserWithEmailAndPassword(auth, email, password);
-    await fb.updateProfile(user, { displayName: name });
-  } finally {
-    setTimeout(() => { pendingName = ''; }, 5000);
-  }
 }
 
 export const signIn = (email, password) => fb.signInWithEmailAndPassword(auth, email, password);
 export const resetPassword = (email) => fb.sendPasswordResetEmail(auth, email);
 export const logout = () => fb.signOut(auth);
 
-export async function googleSignIn() {
-  const provider = new fb.GoogleAuthProvider();
+// ---------- Керівник: водії ----------
+
+// Створює обліковий запис водія. Окремий екземпляр Firebase (у пам'яті),
+// щоб керівник не вийшов зі свого облікового запису.
+export async function createDriver(name, email, password) {
+  const sec = fb.initializeApp(config, 'add-driver-' + Date.now());
   try {
-    await fb.signInWithPopup(auth, provider);
-  } catch (e) {
-    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
-      await fb.signInWithRedirect(auth, provider);
-    } else throw e;
+    const secAuth = fb.initializeAuth(sec, { persistence: fb.inMemoryPersistence });
+    if (useEmulator) fb.connectAuthEmulator(secAuth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    const { user } = await fb.createUserWithEmailAndPassword(secAuth, email, password);
+    await fb.updateProfile(user, { displayName: name });
+    await fb.signOut(secAuth);
+    // Профіль записує керівник (правила дозволяють йому лише роль 'driver')
+    await fb.setDoc(fb.doc(db, 'users', user.uid), { name, email, role: 'driver', createdAt: Date.now() });
+    return user.uid;
+  } finally {
+    await fb.deleteApp(sec);
   }
 }
+
+// role: 'driver' (підтвердити / відновити) або 'disabled' (закрити доступ)
+export const setUserRole = (uid, role) => fb.updateDoc(fb.doc(db, 'users', uid), { role });
 
 export function authError(e) {
   const map = {
     'auth/invalid-email': 'Невірний формат email.',
     'auth/missing-password': 'Введи пароль.',
     'auth/weak-password': 'Пароль має бути щонайменше 6 символів.',
-    'auth/email-already-in-use': 'Такий email уже зареєстровано — увійди.',
+    'auth/email-already-in-use': 'Обліковий запис з таким email уже існує.',
     'auth/invalid-credential': 'Невірний email або пароль.',
     'auth/wrong-password': 'Невірний email або пароль.',
     'auth/user-not-found': 'Невірний email або пароль.',

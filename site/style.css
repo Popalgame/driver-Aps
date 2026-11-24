@@ -107,3 +107,16 @@ dialog input {
 .dtotal b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
 .dtotal span { font-size: 13px; }
 .shift.static { cursor: default; }
+
+.btn.add { margin-bottom: 16px; font-size: 18px; padding: 14px; }
+.pending { border: 1px solid var(--amber); }
+.pending h2 { color: var(--amber); }
+.pend { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+.pend .n { color: var(--muted); font-size: 13px; word-break: break-all; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.badge.off { color: var(--red); }
+.driver.off { opacity: .6; }
+.pwrow { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.pwrow input { margin-top: 0 !important; font-family: ui-monospace, monospace; }
+.creds { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; white-space: pre-wrap; font-size: 15px; user-select: all; }
+#waitView .btn { margin-top: 8px; }

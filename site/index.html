@@ -21,21 +21,24 @@
 
   <p id="loading" class="muted center">Завантаження…</p>
 
-  <!-- Вхід / реєстрація -->
+  <!-- Вхід (реєстрації немає — водіїв додає керівник) -->
   <section id="authView" class="card" hidden>
-    <div class="seg" role="tablist">
-      <button type="button" data-auth="login" class="on">Вхід</button>
-      <button type="button" data-auth="register">Реєстрація</button>
-    </div>
+    <h2 class="center">Вхід</h2>
     <form id="authForm" novalidate>
-      <label id="nameRow" hidden>Ім'я та прізвище <input id="aName" autocomplete="name" maxlength="60"></label>
       <label>Email <input id="aEmail" type="email" autocomplete="email" required></label>
-      <label>Пароль <input id="aPass" type="password" autocomplete="current-password" minlength="6" required></label>
+      <label>Пароль <input id="aPass" type="password" autocomplete="current-password" required></label>
       <p id="aErr" class="err"></p>
       <button id="authSubmit" class="btn big start" type="submit">Увійти</button>
     </form>
-    <button id="googleBtn" class="btn secondary" type="button">Увійти через Google</button>
     <button id="resetBtn" class="btn link" type="button">Забули пароль?</button>
+    <p class="muted center small-text">Немає облікового запису? Попроси керівника додати тебе.</p>
+  </section>
+
+  <!-- Обліковий запис ще не підтверджено або доступ закрито -->
+  <section id="waitView" class="card center" hidden>
+    <h2 id="waitTitle">Очікує підтвердження</h2>
+    <p id="waitText" class="muted"></p>
+    <button id="waitLogout" class="btn secondary" type="button">Вийти</button>
   </section>
 
   <main id="mainView" hidden>
@@ -86,8 +89,13 @@
           <button id="mExportBtn" class="btn small">⬇ CSV</button>
         </div>
       </section>
+      <button id="addDriverBtn" class="btn big start add" type="button">＋ Додати водія</button>
+      <section id="pendingBox" class="card pending" hidden>
+        <h2>Очікують підтвердження</h2>
+        <ul id="pendingList" class="history"></ul>
+      </section>
       <ul id="drivers" class="drivers"></ul>
-      <p id="mEmpty" class="muted center" hidden>Ще немає жодного водія. Попроси водіїв зареєструватися в апці.</p>
+      <p id="mEmpty" class="muted center" hidden>Ще немає жодного водія. Натисни «Додати водія».</p>
       <p id="mErr" class="err center"></p>
     </div>
 
@@ -107,6 +115,30 @@
         <span>
           <button value="cancel" class="btn small" formnovalidate>Скасувати</button>
           <button value="save" class="btn small start">Зберегти</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="driverDlg">
+    <form id="driverForm" novalidate>
+      <h3>Новий водій</h3>
+      <div id="dFields">
+        <label>Ім'я та прізвище <input id="dName" maxlength="60" autocomplete="off" required></label>
+        <label>Email <input id="dEmail" type="email" autocomplete="off" required></label>
+        <label>Пароль <span class="pwrow"><input id="dPass" autocomplete="off" minlength="6" required><button id="dGen" class="btn small" type="button" title="Новий пароль">↻</button></span></label>
+      </div>
+      <div id="dDone" hidden>
+        <p>✅ Водія додано. Передай йому дані для входу:</p>
+        <pre id="dCreds" class="creds"></pre>
+        <button id="dCopy" class="btn small" type="button">Скопіювати</button>
+      </div>
+      <p id="dErr" class="err"></p>
+      <div class="row">
+        <span></span>
+        <span>
+          <button id="dCancel" class="btn small" type="button">Закрити</button>
+          <button id="dSubmit" class="btn small start" type="submit">Додати</button>
         </span>
       </div>
     </form>

@@ -7,6 +7,8 @@ const users = [
   { id: 'a', name: 'Андрій', role: 'driver' },
   { id: 'b', name: 'Богдан', role: 'driver' },
   { id: 'c', name: 'Віра', role: 'driver' },
+  { id: 'd', name: 'Звільнений', role: 'disabled' },
+  { id: 'p', name: 'Новенький', role: 'pending' },
   { id: 'm', name: 'Керівник', role: 'manager' },
 ];
 const shifts = [
@@ -16,9 +18,10 @@ const shifts = [
   { uid: 'x', driverName: 'Видалений', start: 3 * H, end: 4 * H, breaks: [], note: '' },
 ];
 
-test('підсумок по водіях: активні першими, далі за часом; керівник не в списку', () => {
+test('підсумок по водіях: активні першими, далі за часом; закриті в кінці; керівник і pending не в списку', () => {
   const rows = summarizeByDriver(shifts, users, 0, 24 * H, 12 * H);
-  assert.deepEqual(rows.map((r) => r.uid), ['b', 'a', 'x', 'c']);
+  assert.deepEqual(rows.map((r) => r.uid), ['b', 'a', 'x', 'c', 'd']);
+  assert.equal(rows[4].role, 'disabled');
   const b = rows[0];
   assert.equal(b.total, 2 * H + 1 * H); // 2 год завершеної + 1 год активної до перерви
   assert.equal(b.count, 2);

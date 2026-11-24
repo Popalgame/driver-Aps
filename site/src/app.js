@@ -195,6 +195,7 @@ function setShifts(list) {
 function show(view) {
   $('loading').hidden = view !== 'loading';
   $('authView').hidden = view !== 'auth';
+  $('waitView').hidden = view !== 'wait';
   $('mainView').hidden = view !== 'main';
 }
 
@@ -220,37 +221,19 @@ addEventListener('online', updateModeNote);
 addEventListener('offline', updateModeNote);
 
 // ---------- Вхід ----------
-let authMode = 'login';
-function setAuthMode(m) {
-  authMode = m;
-  for (const b of document.querySelectorAll('[data-auth]')) b.classList.toggle('on', b.dataset.auth === m);
-  $('nameRow').hidden = m !== 'register';
-  $('authSubmit').textContent = m === 'register' ? 'Зареєструватися' : 'Увійти';
-  $('aPass').autocomplete = m === 'register' ? 'new-password' : 'current-password';
-  $('aErr').textContent = '';
-}
-for (const b of document.querySelectorAll('[data-auth]')) b.addEventListener('click', () => setAuthMode(b.dataset.auth));
-
 $('authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const name = $('aName').value.trim();
   const email = $('aEmail').value.trim();
   const pass = $('aPass').value;
-  if (authMode === 'register' && !name) { $('aErr').textContent = 'Введи ім\'я — його побачить керівник.'; return; }
   $('authSubmit').disabled = true;
   $('aErr').textContent = '';
   try {
-    if (authMode === 'register') await cloud.register(name, email, pass);
-    else await cloud.signIn(email, pass);
+    await cloud.signIn(email, pass);
   } catch (err) {
     $('aErr').textContent = cloud.authError(err);
   } finally {
     $('authSubmit').disabled = false;
   }
-});
-
-$('googleBtn').addEventListener('click', () => {
-  cloud.googleSignIn().catch((err) => { $('aErr').textContent = cloud.authError(err); });
 });
 
 $('resetBtn').addEventListener('click', async () => {
@@ -267,6 +250,7 @@ $('resetBtn').addEventListener('click', async () => {
 $('logoutBtn').addEventListener('click', () => {
   if (confirm('Вийти з облікового запису?')) cloud.logout();
 });
+$('waitLogout').addEventListener('click', () => cloud.logout());
 
 // Зміни, записані на цьому пристрої до входу, переносимо в обліковий запис
 function offerMigration() {
@@ -285,12 +269,25 @@ function onProfile(p) {
     store = null;
     shifts = [];
     $('userChip').hidden = true;
-    setAuthMode('login');
+    $('aErr').textContent = '';
     show('auth');
     return;
   }
   $('userName').textContent = p.name;
   $('userChip').hidden = false;
+  if (p.role !== 'driver' && p.role !== 'manager') {
+    // Обліковий запис ще не підтверджено керівником або доступ закрито
+    store = null;
+    shifts = [];
+    const off = p.role === 'disabled';
+    $('waitTitle').textContent = off ? 'Доступ закрито' : 'Очікує підтвердження';
+    $('waitText').textContent = off
+      ? 'Керівник закрив доступ для цього облікового запису. Звернися до керівника.'
+      : `Обліковий запис ${p.email} ще не підтверджено. Попроси керівника відкрити тобі доступ, потім онови сторінку.`;
+    if (p.error) $('waitText').textContent += ' (Немає зв\'язку з базою — перевір інтернет.)';
+    show('wait');
+    return;
+  }
   store = cloudStore(p, setShifts);
   $('tabs').hidden = p.role !== 'manager';
   setTab('driver');

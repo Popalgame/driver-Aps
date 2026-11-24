@@ -9,8 +9,10 @@ PWA для водіїв: облік робочого часу.
 - **Експорт у CSV** (Excel / Google Таблиці).
 - Працює **офлайн**, ставиться на головний екран телефона.
 
-- **Вхід** (email + пароль або Google) і **база даних Firebase**: дані не губляться й синхронізуються між пристроями.
-- **Керівник** бачить усіх водіїв: хто зараз у дорозі, підсумки за день / тиждень / місяць / період, деталі змін, CSV.
+- **Вхід** (email + пароль) і **база даних Firebase**: дані не губляться й синхронізуються між пристроями.
+- **Реєстрації немає** — водіїв додає керівник у вкладці «Водії» (апка генерує пароль).
+- **Керівник** бачить усіх водіїв: хто зараз у дорозі, підсумки за день / тиждень / місяць / період, деталі змін, CSV;
+  підтверджує нові облікові записи й закриває доступ.
 - Без інтернету зміни зберігаються й синхронізуються, коли зв'язок повернеться.
 
 Поки Firebase не налаштований (`site/src/firebase-config.js` = `null`), апка працює лише
@@ -46,25 +48,31 @@ npm start            # у другому
 ## База даних
 
 ```
-users/{uid}   { name, email, role: "driver" | "manager", createdAt }
+users/{uid}   { name, email, role: "pending" | "driver" | "disabled" | "manager", createdAt }
 shifts/{id}   { uid, driverName, start, end, breaks: [{start, end}], note, updatedAt }
 ```
 
 Час — у мілісекундах. Правила доступу — `site/firestore.rules`:
-водій бачить і змінює лише свої зміни; керівник бачить усіх (лише читання).
+- `pending` — увійшов, але ще не підтверджений: нічого не записує;
+- `driver` — бачить і змінює лише свої зміни;
+- `disabled` — доступ закрито керівником;
+- `manager` — бачить усіх (зміни лише читає), додає водіїв, підтверджує, закриває доступ.
 
-## Підключення Firebase
+Правила публікуються автоматично разом з апкою (GitHub Actions).
 
-1. Firebase Console → свій проєкт → **Build → Authentication → Get started** →
-   увімкни **Email/Password** і **Google**.
-2. **Build → Firestore Database → Create database** (регіон `eur3` / `europe-central2`, режим *production*).
-3. **Firestore → Rules** — встав вміст `site/firestore.rules` → **Publish**.
-4. **⚙ Project settings → Your apps → Web (</>)** — зареєструй апку, скопіюй `firebaseConfig`
-   у `site/src/firebase-config.js`.
-5. **Authentication → Settings → Authorized domains** — додай домен, де буде апка
-   (`localhost` уже є).
-6. Керівник: зареєструйся в апці, потім **Firestore → users → твій документ →
-   поле `role`** зміни на `manager`.
+## Підключення Firebase (вже зроблено для проєкту `driver-aps`)
+
+1. Authentication → Sign-in method → увімкнути **Email/Password**.
+2. Firestore Database → Create database (`europe-central2`, production).
+3. Project settings → Your apps → Web → конфіг у `site/src/firebase-config.js`.
+4. Секрет `FIREBASE_SERVICE_ACCOUNT` у GitHub — публікація апки й правил.
+
+### Перший керівник
+
+1. Authentication → Users → **Add user** (email + пароль).
+2. Увійди в апку — з'явиться «Очікує підтвердження».
+3. Firestore → `users` → документ з твоїм email → `role`: `manager` (і `name` — своє ім'я).
+   Апка сама відкриє панель керівника.
 
 Оновлення SDK Firebase: `npm run build:firebase` (збирає `site/vendor/firebase.js`).
 

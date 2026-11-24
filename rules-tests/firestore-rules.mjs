@@ -8,6 +8,7 @@ let env;
 const shift = (uid, extra = {}) => ({
   uid, driverName: 'Тест', start: 1000, end: 2000, breaks: [], note: '', updatedAt: 3000, ...extra,
 });
+const profile = (name, role) => ({ name, email: name + '@x', role, createdAt: 1 });
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -21,11 +22,15 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'users/alice'), { name: 'Аліса', email: 'a@x', role: 'driver', createdAt: 1 });
-    await setDoc(doc(db, 'users/bob'), { name: 'Боб', email: 'b@x', role: 'driver', createdAt: 1 });
-    await setDoc(doc(db, 'users/boss'), { name: 'Шеф', email: 'm@x', role: 'manager', createdAt: 1 });
+    await setDoc(doc(db, 'users/alice'), profile('Аліса', 'driver'));
+    await setDoc(doc(db, 'users/bob'), profile('Боб', 'driver'));
+    await setDoc(doc(db, 'users/boss'), profile('Шеф', 'manager'));
+    await setDoc(doc(db, 'users/boss2'), profile('Шеф2', 'manager'));
+    await setDoc(doc(db, 'users/newbie'), profile('Новий', 'pending'));
+    await setDoc(doc(db, 'users/gone'), profile('Звільнений', 'disabled'));
     await setDoc(doc(db, 'shifts/s-alice'), shift('alice'));
     await setDoc(doc(db, 'shifts/s-bob'), shift('bob'));
+    await setDoc(doc(db, 'shifts/s-gone'), shift('gone'));
   });
 });
 
@@ -54,22 +59,34 @@ test('водій не може записати зміну від імені і�
   const db = as('alice');
   await assertFails(setDoc(doc(db, 'shifts/fake'), shift('bob')));
   await assertFails(updateDoc(doc(db, 'shifts/s-alice'), { uid: 'bob' }));
-  await assertFails(setDoc(doc(db, 'shifts/s-bob'), shift('alice'))); // перезапис чужої
+  await assertFails(setDoc(doc(db, 'shifts/s-bob'), shift('alice')));
 });
 
 test('некоректні дані відхиляються', async () => {
   const db = as('alice');
-  await assertFails(setDoc(doc(db, 'shifts/bad1'), shift('alice', { end: 500 })));       // кінець раніше початку
-  await assertFails(setDoc(doc(db, 'shifts/bad2'), shift('alice', { start: '10:00' })));  // не число
+  await assertFails(setDoc(doc(db, 'shifts/bad1'), shift('alice', { end: 500 })));
+  await assertFails(setDoc(doc(db, 'shifts/bad2'), shift('alice', { start: '10:00' })));
   await assertFails(setDoc(doc(db, 'shifts/bad3'), shift('alice', { note: 'x'.repeat(201) })));
-  await assertFails(setDoc(doc(db, 'shifts/bad4'), shift('alice', { salary: 1000 })));   // зайве поле
+  await assertFails(setDoc(doc(db, 'shifts/bad4'), shift('alice', { salary: 1000 })));
 });
 
-test('профіль: створити можна лише свій і лише з роллю driver', async () => {
-  const db = as('carol');
-  await assertFails(setDoc(doc(db, 'users/carol'), { name: 'Кароль', email: 'c@x', role: 'manager', createdAt: 1 }));
-  await assertFails(setDoc(doc(db, 'users/dave'), { name: 'Дейв', email: 'd@x', role: 'driver', createdAt: 1 }));
-  await assertSucceeds(setDoc(doc(db, 'users/carol'), { name: 'Кароль', email: 'c@x', role: 'driver', createdAt: 1 }));
+test('новий користувач без підтвердження: профіль лише pending і нічого не записує', async () => {
+  const db = as('stranger');
+  await assertFails(setDoc(doc(db, 'users/stranger'), profile('Чужий', 'driver')));
+  await assertFails(setDoc(doc(db, 'users/stranger'), profile('Чужий', 'manager')));
+  await assertFails(setDoc(doc(db, 'users/other'), profile('Інший', 'pending')));
+  await assertSucceeds(setDoc(doc(db, 'users/stranger'), profile('Чужий', 'pending')));
+  await assertFails(setDoc(doc(db, 'shifts/st'), shift('stranger')));
+  const nb = as('newbie');
+  await assertFails(setDoc(doc(nb, 'shifts/nb'), shift('newbie')));
+  await assertFails(updateDoc(doc(nb, 'users/newbie'), { role: 'driver' }));
+});
+
+test('водій із закритим доступом нічого не записує', async () => {
+  const db = as('gone');
+  await assertFails(setDoc(doc(db, 'shifts/g2'), shift('gone')));
+  await assertFails(updateDoc(doc(db, 'shifts/s-gone'), { note: 'x', updatedAt: 5 }));
+  await assertFails(updateDoc(doc(db, 'users/gone'), { role: 'driver' }));
 });
 
 test('водій не може сам стати керівником, але може змінити ім\'я', async () => {
@@ -78,13 +95,28 @@ test('водій не може сам стати керівником, але м
   await assertSucceeds(updateDoc(doc(db, 'users/alice'), { name: 'Аліса К.' }));
   await assertFails(getDoc(doc(db, 'users/bob')));
   await assertFails(getDocs(collection(db, 'users')));
+  await assertFails(setDoc(doc(db, 'users/friend'), profile('Друг', 'driver')));
 });
 
-test('керівник бачить усіх водіїв і всі зміни, але не змінює їх', async () => {
+test('керівник бачить усіх і всі зміни, але не змінює чужі зміни', async () => {
   const db = as('boss');
   await assertSucceeds(getDocs(collection(db, 'users')));
   await assertSucceeds(getDocs(query(collection(db, 'shifts'), where('start', '>=', 0), where('start', '<', 5000))));
   await assertSucceeds(getDoc(doc(db, 'shifts/s-bob')));
   await assertFails(updateDoc(doc(db, 'shifts/s-bob'), { note: 'правка' }));
   await assertFails(deleteDoc(doc(db, 'shifts/s-bob')));
+});
+
+test('керівник додає водіїв, підтверджує й закриває доступ', async () => {
+  const db = as('boss');
+  await assertSucceeds(setDoc(doc(db, 'users/carol'), profile('Кароль', 'driver')));
+  await assertFails(setDoc(doc(db, 'users/dave'), profile('Дейв', 'manager')));
+  await assertSucceeds(updateDoc(doc(db, 'users/newbie'), { role: 'driver' }));
+  await assertSucceeds(updateDoc(doc(db, 'users/bob'), { role: 'disabled' }));
+  await assertSucceeds(updateDoc(doc(db, 'users/gone'), { role: 'driver' }));
+  await assertSucceeds(updateDoc(doc(db, 'users/alice'), { name: 'Аліса Коваль' }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { role: 'manager' }));
+  await assertFails(updateDoc(doc(db, 'users/alice'), { email: 'hack@x' }));
+  await assertFails(updateDoc(doc(db, 'users/boss2'), { role: 'disabled' }));
+  await assertFails(updateDoc(doc(db, 'users/boss'), { role: 'driver' }));
 });
