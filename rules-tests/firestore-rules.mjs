@@ -145,7 +145,9 @@ test('кілометраж: некоректні дані і непідтвер�
   const a = as('alice');
   await assertFails(setDoc(doc(a, 'mileage/x1'), odoDoc('alice', { km: null })));
   await assertFails(setDoc(doc(a, 'mileage/x2'), odoDoc('alice', { km: -5 })));
-  await assertFails(setDoc(doc(a, 'mileage/x3'), fuelDoc('alice', { liters: null })));
+  // заправка лише з датою — дозволено
+  await assertSucceeds(setDoc(doc(a, 'mileage/x3'), fuelDoc('alice', { liters: null, amount: null, note: '' })));
+  await assertFails(setDoc(doc(a, 'mileage/x6'), fuelDoc('alice', { liters: 0 })));
   await assertFails(setDoc(doc(a, 'mileage/x4'), fuelDoc('alice', { type: 'wash' })));
   await assertFails(setDoc(doc(a, 'mileage/x5'), odoDoc('alice', { extra: 1 })));
   await assertFails(setDoc(doc(as('newbie'), 'mileage/n1'), odoDoc('newbie')));

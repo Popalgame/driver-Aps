@@ -75,7 +75,7 @@ service cloud.firestore {
         && d.updatedAt is number;
     }
 
-    // Кілометраж (показник одометра зранку) і заправки
+    // Кілометраж (показник одометра зранку) і заправки (для заправки достатньо дати)
     function validMileage(d) {
       return d.keys().hasOnly(['uid', 'type', 'at', 'km', 'liters', 'amount', 'note', 'updatedAt'])
         && d.uid == request.auth.uid
@@ -85,7 +85,6 @@ service cloud.firestore {
         && (d.liters == null || (d.liters is number && d.liters > 0 && d.liters < 2000))
         && (d.amount == null || (d.amount is number && d.amount >= 0 && d.amount < 1000000))
         && (d.type != 'odo' || d.km is number)
-        && (d.type != 'fuel' || d.liters is number)
         && d.note is string && d.note.size() <= 200
         && d.updatedAt is number;
     }

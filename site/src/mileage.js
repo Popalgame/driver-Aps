@@ -94,16 +94,22 @@ function openEntry(e, type) {
   const t = e?.type || type;
   $('kmDlg').dataset.type = t;
   $('kmDlgTitle').textContent = t === 'fuel' ? (e ? '⛽ Заправка' : '⛽ Нова заправка') : (e ? '🚗 Кілометраж' : '🚗 Кілометраж за інший день');
-  $('kmDate').type = t === 'fuel' ? 'datetime-local' : 'date';
-  $('kmDate').value = toLocalInput(e?.at ?? (t === 'fuel' ? Date.now() : +startOfDay()), t === 'fuel');
-  $('kmKm').value = e?.km ?? '';
-  $('kmLiters').value = e?.liters ?? '';
-  $('kmAmount').value = e?.amount ?? '';
-  $('kmNote').value = e?.note || '';
-  $('kmKmLabel').firstChild.textContent = t === 'fuel' ? 'Кілометраж при заправці (необов\'язково) ' : 'Кілометраж, км ';
+  const fuel = t === 'fuel';
+  $('kmDate').type = fuel ? 'datetime-local' : 'date';
+  $('kmDate').value = toLocalInput(e?.at ?? (fuel ? Date.now() : +startOfDay()), fuel);
+  $('kmDateLabel').firstChild.textContent = fuel ? 'Дата і час ' : 'Дата ';
+  $('kmOdoFields').hidden = fuel;
+  $('kmMore').hidden = !fuel;
+  $('kmKm').value = !fuel ? (e?.km ?? '') : '';
+  $('kmNote').value = !fuel ? (e?.note || '') : '';
+  $('kmLiters').value = fuel ? (e?.liters ?? '') : '';
+  $('kmAmount').value = fuel ? (e?.amount ?? '') : '';
+  $('kmFuelKm').value = fuel ? (e?.km ?? '') : '';
+  $('kmFuelNote').value = fuel ? (e?.note || '') : '';
+  // «Додатково» відкрите лише тоді, коли там уже щось вписано
+  $('kmMore').open = !!(fuel && e && (e.liters != null || e.amount != null || e.km != null || e.note));
   $('kmDel').hidden = !e;
   $('kmErr').textContent = '';
-  for (const n of document.querySelectorAll('#kmDlg .fuel-only')) n.hidden = t !== 'fuel';
   $('kmDlg').showModal();
 }
 
@@ -121,9 +127,9 @@ $('kmForm').addEventListener('submit', (ev) => {
   const raw = $('kmDate').value;
   if (!raw) { $('kmErr').textContent = 'Вкажи дату.'; return; }
   const at = t === 'fuel' ? +new Date(raw) : +startOfDay(new Date(raw + 'T00:00'));
-  const kmV = parse('kmKm');
+  const kmV = parse(t === 'fuel' ? 'kmFuelKm' : 'kmKm');
   if (kmV !== null && (!Number.isFinite(kmV) || kmV < 0)) { $('kmErr').textContent = 'Кілометраж — додатне число.'; return; }
-  const note = $('kmNote').value.trim().slice(0, 200);
+  const note = $(t === 'fuel' ? 'kmFuelNote' : 'kmNote').value.trim().slice(0, 200);
   if (t === 'odo') {
     if (kmV === null) { $('kmErr').textContent = 'Впиши кілометраж.'; return; }
     const id = odoId(at);
@@ -131,8 +137,9 @@ $('kmForm').addEventListener('submit', (ev) => {
     put({ id, type: 'odo', at, km: Math.round(kmV), liters: null, amount: null, note });
   } else {
     const liters = parse('kmLiters'), amount = parse('kmAmount');
-    if (!(liters > 0)) { $('kmErr').textContent = 'Впиши кількість літрів.'; return; }
-    if (amount !== null && !(amount >= 0)) { $('kmErr').textContent = 'Сума — число.'; return; }
+    // Достатньо дати; літри, сума, кілометраж — за бажанням
+    if (liters !== null && !(liters > 0 && liters < 2000)) { $('kmErr').textContent = 'Літри — додатне число.'; $('kmMore').open = true; return; }
+    if (amount !== null && !(amount >= 0)) { $('kmErr').textContent = 'Сума — число.'; $('kmMore').open = true; return; }
     put({ id: editing?.id || newId(), type: 'fuel', at, km: kmV === null ? null : Math.round(kmV), liters, amount, note });
   }
   $('kmDlg').close();
@@ -211,8 +218,8 @@ function renderStats() {
   const s = summary(entries, from, to);
   const tiles = [
     ['Пробіг', km(s.km)],
-    ['Заправлено', `${num2.format(s.liters)} л`],
-    ['Витрачено', num2.format(s.amount)],
+    ['Заправок', s.count ? `${s.count}` + (s.liters ? ` · ${num2.format(s.liters)} л` : '') : '0'],
+    ['Витрачено', s.amount ? num2.format(s.amount) : '—'],
     ['Середня витрата', s.per100 ? `${num2.format(s.per100)} л/100 км` : '—'],
   ];
   const box = $('kmStats');
@@ -253,7 +260,7 @@ function renderHistory() {
       right.textContent = r?.driven != null ? drivenText(r) : '';
       if (r?.driven == null) right.append(el('span', 'muted small-text', e.at === +startOfDay() ? 'сьогодні' : ''));
     } else {
-      left.append(el('div', 't', `⛽ ${num2.format(e.liters)} л` + (e.amount ? ` · ${num2.format(e.amount)}` : '')));
+      left.append(el('div', 't', '⛽ ' + ([e.liters != null ? `${num2.format(e.liters)} л` : '', e.amount ? num2.format(e.amount) : ''].filter(Boolean).join(' · ') || 'Заправка')));
       const meta = [timeFmt.format(e.at), e.km != null ? km(e.km) : '', e.amount && e.liters ? `${num2.format(e.amount / e.liters)} за л` : '', e.note].filter(Boolean).join(' · ');
       left.append(el('div', 'n', meta));
     }

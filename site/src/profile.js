@@ -300,8 +300,8 @@ function renderKm() {
   box.replaceChildren();
   for (const [label, v] of [
     ['Пробіг', `${kmNum.format(s.km)} км`],
-    ['Заправлено', `${kmNum2.format(s.liters)} л`],
-    ['Витрачено', kmNum2.format(s.amount)],
+    ['Заправок', s.count ? `${s.count}` + (s.liters ? ` · ${kmNum2.format(s.liters)} л` : '') : '0'],
+    ['Витрачено', s.amount ? kmNum2.format(s.amount) : '—'],
     ['Середня витрата', s.per100 ? `${kmNum2.format(s.per100)} л/100 км` : '—'],
   ]) {
     const t = el('div', 'stat');
@@ -342,7 +342,7 @@ function renderKm() {
   for (const e of fuel) {
     const li = el('li', 'shift static km-row fuel');
     const left = el('div');
-    left.append(el('div', 't', `⛽ ${kmNum2.format(e.liters)} л` + (e.amount ? ` · ${kmNum2.format(e.amount)}` : '')));
+    left.append(el('div', 't', '⛽ ' + ([e.liters != null ? `${kmNum2.format(e.liters)} л` : '', e.amount ? kmNum2.format(e.amount) : ''].filter(Boolean).join(' · ') || 'Заправка')));
     left.append(el('div', 'n', [shortDate.format(e.at), timeFmt.format(e.at), e.km != null ? `${kmNum.format(e.km)} км` : '', e.amount && e.liters ? `${kmNum2.format(e.amount / e.liters)} за л` : '', e.note].filter(Boolean).join(' · ')));
     li.append(left);
     ul.append(li);

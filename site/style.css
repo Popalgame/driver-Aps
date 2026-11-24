@@ -421,3 +421,21 @@ body.auth .hero { margin-bottom: 16px; }
 .km-table td.drv { font-weight: 700; }
 .km-table tfoot td { font-weight: 800; border-top: 2px solid var(--line); border-bottom: 0; }
 .pk-sub { font-size: 15px; margin: 16px 0 0; }
+
+.km-more { border: 1px solid var(--line); border-radius: 12px; margin: 4px 0 10px; background: var(--bg); }
+.km-more summary { padding: 12px 14px; cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+.km-more summary::after { content: '▾'; }
+.km-more[open] summary::after { content: '▴'; }
+.km-more summary::-webkit-details-marker { display: none; }
+.km-more label { padding: 0 14px; }
+.km-more[open] { padding-bottom: 4px; }
+
+/* Поля дат: на iPhone вони мають власну мінімальну ширину й розпирають сторінку
+   (браузер тоді «зменшує» весь екран) — примушуємо їх уміщатися */
+input[type="date"], input[type="datetime-local"] {
+  min-width: 0; max-width: 100%; box-sizing: border-box;
+  -webkit-appearance: none; appearance: none; min-height: 46px; text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value, input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
+.range { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.range label, dialog label { min-width: 0; }

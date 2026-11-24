@@ -324,11 +324,20 @@
   <dialog id="kmDlg">
     <form id="kmForm" novalidate>
       <h3 id="kmDlgTitle">Запис</h3>
-      <label>Дата <input id="kmDate" type="date"></label>
-      <label class="fuel-only">Літри <input id="kmLiters" type="text" inputmode="decimal" placeholder="напр. 45,5"></label>
-      <label class="fuel-only">Сума <input id="kmAmount" type="text" inputmode="decimal" placeholder="напр. 280"></label>
-      <label id="kmKmLabel">Кілометраж, км <input id="kmKm" type="text" inputmode="numeric"></label>
-      <label>Нотатка <span class="fuel-only">/ АЗС</span> <input id="kmNote" type="text" maxlength="200"></label>
+      <label id="kmDateLabel">Дата <input id="kmDate" type="date"></label>
+      <!-- Кілометраж за день -->
+      <div id="kmOdoFields">
+        <label>Кілометраж, км <input id="kmKm" type="text" inputmode="numeric"></label>
+        <label>Нотатка <input id="kmNote" type="text" maxlength="200"></label>
+      </div>
+      <!-- Заправка: достатньо дати; решта — за бажанням -->
+      <details id="kmMore" class="km-more">
+        <summary>Додатково (необов'язково)</summary>
+        <label>Літри <input id="kmLiters" type="text" inputmode="decimal" placeholder="напр. 45,5"></label>
+        <label>Сума <input id="kmAmount" type="text" inputmode="decimal" placeholder="напр. 280"></label>
+        <label>Кілометраж, км <input id="kmFuelKm" type="text" inputmode="numeric"></label>
+        <label>АЗС / нотатка <input id="kmFuelNote" type="text" maxlength="200"></label>
+      </details>
       <p id="kmErr" class="err"></p>
       <div class="row">
         <button id="kmDel" class="btn danger small" type="button">Видалити</button>
