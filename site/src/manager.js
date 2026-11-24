@@ -130,7 +130,7 @@ $('driverForm').addEventListener('submit', async (e) => {
   try {
     await cloud.createDriver(name, email, pass);
     $('dErr').textContent = '';
-    $('dCreds').textContent = `driver-Aps\n${APP_URL}\nEmail: ${email}\nПароль: ${pass}`;
+    $('dCreds').textContent = `Driver-Aps\n${APP_URL}\nEmail: ${email}\nПароль: ${pass}`;
     $('dCopy').textContent = 'Скопіювати';
     $('dFields').hidden = true;
     $('dDone').hidden = false;

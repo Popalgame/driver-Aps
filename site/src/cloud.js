@@ -79,7 +79,12 @@ async function ensureProfile(user) {
   await fb.setDoc(ref, profile);
 }
 
-export const signIn = (email, password) => fb.signInWithEmailAndPassword(auth, email, password);
+// remember = true — лишатися в обліковому записі після закриття браузера;
+// false — вихід, коли браузер закрито (чужий / спільний пристрій).
+export async function signIn(email, password, remember = true) {
+  await fb.setPersistence(auth, remember ? fb.browserLocalPersistence : fb.browserSessionPersistence);
+  return fb.signInWithEmailAndPassword(auth, email, password);
+}
 export const resetPassword = (email) => fb.sendPasswordResetEmail(auth, email);
 export const logout = () => fb.signOut(auth);
 

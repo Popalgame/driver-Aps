@@ -120,3 +120,9 @@ dialog input {
 .pwrow input { margin-top: 0 !important; font-family: ui-monospace, monospace; }
 .creds { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; white-space: pre-wrap; font-size: 15px; user-select: all; }
 #waitView .btn { margin-top: 8px; }
+
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 36px; height: 36px; border-radius: 9px; flex: none; }
+
+#authView label.check { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 15px; cursor: pointer; margin: 4px 0 8px; }
+#authView label.check input { width: 22px; height: 22px; margin: 0; padding: 0; accent-color: var(--accent); flex: none; }

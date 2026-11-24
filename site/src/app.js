@@ -221,14 +221,26 @@ addEventListener('online', updateModeNote);
 addEventListener('offline', updateModeNote);
 
 // ---------- Вхід ----------
+const EMAIL_KEY = 'driver-last-email';
+try {
+  const saved = localStorage.getItem(EMAIL_KEY);
+  if (saved) $('aEmail').value = saved;
+} catch { /* сховище недоступне */ }
+
 $('authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = $('aEmail').value.trim();
   const pass = $('aPass').value;
+  const remember = $('aRemember').checked;
   $('authSubmit').disabled = true;
   $('aErr').textContent = '';
   try {
-    await cloud.signIn(email, pass);
+    await cloud.signIn(email, pass, remember);
+    try {
+      if (remember) localStorage.setItem(EMAIL_KEY, email);
+      else localStorage.removeItem(EMAIL_KEY);
+    } catch { /* сховище недоступне */ }
+    $('aPass').value = '';
   } catch (err) {
     $('aErr').textContent = cloud.authError(err);
   } finally {
