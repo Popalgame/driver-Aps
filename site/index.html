@@ -154,24 +154,24 @@
         <button id="odoOther" class="btn link" type="button">+ Запис за інший день</button>
       </section>
 
-      <section class="card">
-        <div class="row"><h2 id="kmMonth">Цей місяць</h2><button id="fuelAdd" class="btn small start" type="button">⛽ + Заправка</button></div>
+      <section class="card km-month">
+        <div class="month-bar">
+          <button id="kmPrev" class="btn small" type="button" aria-label="Попередній місяць">‹</button>
+          <select id="kmMonthSel" aria-label="Місяць"></select>
+          <button id="kmNext" class="btn small" type="button" aria-label="Наступний місяць">›</button>
+        </div>
         <div id="kmStats" class="stats km-stats"></div>
+        <button id="fuelAdd" class="btn secondary fuel-add" type="button">⛽ + Заправка</button>
       </section>
 
       <section class="card km-hist">
         <div class="row">
-          <h2>Історія</h2>
-          <button id="kmExport" class="btn small" type="button">⬇ Excel</button>
+          <h2 id="kmHistTitle">Історія</h2>
+          <button id="kmExport" class="btn small" type="button">⬇ Excel за місяць</button>
         </div>
-        <div class="seg small" id="kmPeriod">
-          <button type="button" data-p="month" class="on">Цей місяць</button>
-          <button type="button" data-p="last">Минулий</button>
-          <button type="button" data-p="all">Усе</button>
-        </div>
-        <p id="kmPeriodSum" class="muted small-text"></p>
         <ul id="kmHistory" class="history"></ul>
-        <p id="kmEmpty" class="muted">Немає записів за цей період.</p>
+        <p id="kmEmpty" class="muted">Немає записів.</p>
+        <button id="kmExportAll" class="btn link" type="button">⬇ Excel за весь час</button>
       </section>
     </div>
 

@@ -380,7 +380,17 @@ body.auth .hero { margin-bottom: 16px; }
 .odo-done { color: var(--accent-on); font-size: 14px; font-weight: 600; margin: 0; }
 .km-stats { grid-template-columns: repeat(2, 1fr); margin: 12px 0 0; }
 .km-stats .stat { background: var(--bg); }
-.km-hist .seg { margin: 12px 0 6px; }
+.month-bar { display: flex; align-items: center; gap: 8px; }
+.month-bar .btn { flex: none; width: 44px; height: 44px; font-size: 20px; padding: 0; }
+.month-bar .btn:disabled { opacity: .35; }
+.month-bar select {
+  flex: 1; min-width: 0; height: 44px; padding: 0 36px 0 14px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238fa6d6' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 14px center;
+  color: var(--text); font: inherit; font-size: 18px; font-weight: 700; text-align: center; text-align-last: center;
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+}
+.fuel-add { margin-top: 12px; }
+#kmHistTitle::first-letter { text-transform: uppercase; }
 .km-row { cursor: pointer; }
 .km-row.fuel .t { color: #fde68a; }
 #kmDlg .fuel-only[hidden] { display: none !important; }
@@ -392,7 +402,7 @@ body.auth .hero { margin-bottom: 16px; }
     grid-template-areas: "odo hist" "stats hist" ". hist";
   }
   #mileageView .odo-card { grid-area: odo; }
-  #mileageView > section:nth-child(2) { grid-area: stats; }
+  #mileageView .km-month { grid-area: stats; }
   #mileageView .km-hist { grid-area: hist; }
   .km-stats { grid-template-columns: repeat(2, 1fr); }
 }

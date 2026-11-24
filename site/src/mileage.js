@@ -20,7 +20,7 @@ const kmDiff = (v) => `${v >= 0 ? '+' : '−'}${km(Math.abs(v))}`;
 let user = null;        // { uid, name } або null (локальний режим)
 let entries = [];
 let stop = null;
-let period = 'month';   // month | last | all
+let month = startOfMonth(); // вибраний місяць: від нього залежать підсумки, історія й Excel
 let editing = null;     // запис у діалозі
 
 // ---------- Сховище ----------
@@ -137,25 +137,48 @@ $('kmForm').addEventListener('submit', (ev) => {
   $('kmDlg').close();
 });
 
-// ---------- Період історії і Excel ----------
-function range() {
-  const m = startOfMonth();
-  if (period === 'month') { const n = new Date(m); n.setMonth(n.getMonth() + 1); return [+m, +n]; }
-  if (period === 'last') { const p = new Date(m); p.setMonth(p.getMonth() - 1); return [+p, +m]; }
-  const first = entries.length ? Math.min(...entries.map((e) => e.at)) : +m;
-  return [+startOfDay(new Date(first)), +startOfDay() + 86400000];
+// ---------- Вибраний місяць і Excel ----------
+const addMonths = (d, n) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; };
+function range() { return [+month, +addMonths(month, 1)]; }
+const isCurrent = () => +month === +startOfMonth();
+
+function setMonth(d) {
+  const cur = startOfMonth();
+  month = +d > +cur ? cur : startOfMonth(d);
+  renderStats();
+  renderHistory();
 }
-for (const b of document.querySelectorAll('#kmPeriod button')) {
-  b.addEventListener('click', () => {
-    period = b.dataset.p;
-    for (const x of document.querySelectorAll('#kmPeriod button')) x.classList.toggle('on', x === b);
-    renderHistory();
-  });
+$('kmPrev').addEventListener('click', () => setMonth(addMonths(month, -1)));
+$('kmNext').addEventListener('click', () => setMonth(addMonths(month, 1)));
+$('kmMonthSel').addEventListener('change', (e) => setMonth(new Date(Number(e.target.value))));
+
+// Список місяців: від найстаршого запису до поточного
+function fillMonthSelect() {
+  const sel = $('kmMonthSel');
+  const cur = startOfMonth();
+  let m = entries.length ? startOfMonth(new Date(Math.min(...entries.map((e) => e.at)))) : cur;
+  if (+month < +m) m = new Date(month);
+  const opts = [];
+  for (; +m <= +cur; m = addMonths(m, 1)) opts.unshift(+m);
+  sel.replaceChildren(...opts.map((v) => {
+    const o = document.createElement('option');
+    o.value = String(v);
+    o.textContent = cap(monthFmt.format(v)) + (v === +cur ? ' (зараз)' : '');
+    return o;
+  }));
+  sel.value = String(+month);
+  $('kmNext').disabled = isCurrent();
 }
+
 $('kmExport').addEventListener('click', async () => {
   const { exportMileage } = await import('./export.js');
   const [from, to] = range();
   exportMileage(entries, from, to, user?.name);
+});
+$('kmExportAll').addEventListener('click', async () => {
+  const { exportMileage } = await import('./export.js');
+  const first = entries.length ? Math.min(...entries.map((e) => e.at)) : Date.now();
+  exportMileage(entries, +startOfDay(new Date(first)), +startOfDay() + 86400000, user?.name);
 });
 
 // ---------- Відображення ----------
@@ -182,9 +205,9 @@ function renderToday() {
 }
 
 function renderStats() {
-  const m = startOfMonth(); const n = new Date(m); n.setMonth(n.getMonth() + 1);
-  const s = summary(entries, +m, +n);
-  $('kmMonth').textContent = cap(monthFmt.format(m));
+  fillMonthSelect();
+  const [from, to] = range();
+  const s = summary(entries, from, to);
   const tiles = [
     ['Пробіг', km(s.km)],
     ['Заправлено', `${num2.format(s.liters)} л`],
@@ -205,10 +228,10 @@ function renderHistory() {
   const inP = (e) => e.at >= from && e.at < to;
   const diffs = new Map(odoRows(entries).map((r) => [r.id, r.diff]));
   const list = entries.filter(inP).sort((a, b) => b.at - a.at || (a.type === 'odo' ? 1 : -1));
-  const s = summary(entries, from, to);
-  $('kmPeriodSum').textContent = list.length
-    ? `Пробіг: ${km(s.km)} · заправок: ${s.count} · ${num2.format(s.liters)} л` + (s.amount ? ` · ${num2.format(s.amount)}` : '')
-    : '';
+  $('kmHistTitle').textContent = `Історія · ${monthFmt.format(month).replace(/ \d{4}.*$/, '')}`;
+  $('kmEmpty').textContent = isCurrent()
+    ? 'Цього місяця ще немає записів.'
+    : `За ${monthFmt.format(month)} записів немає.`;
   const ul = $('kmHistory');
   ul.replaceChildren();
   $('kmEmpty').hidden = list.length > 0;
