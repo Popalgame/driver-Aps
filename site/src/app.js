@@ -49,6 +49,46 @@ function cloudStore(user, onChange) {
   };
 }
 
+// ---------- Швидкий старт: останній стан у пам'яті телефона ----------
+// Хто увійшов і останні зміни зберігаються локально, щоб при відкритті одразу показати
+// «Мій час», не чекаючи перевірки входу й бази на сервері (вона йде у фоні).
+const SESSION_KEY = 'driver-session';
+const SHIFTS_CACHE = 'driver-shifts-cache-';
+
+function saveSession(p) {
+  try {
+    if (p && (p.role === 'driver' || p.role === 'manager')) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ uid: p.uid, name: p.name, email: p.email, role: p.role }));
+    } else if (!p) {
+      localStorage.removeItem(SESSION_KEY);
+      for (const k of Object.keys(localStorage)) if (k.startsWith(SHIFTS_CACHE)) localStorage.removeItem(k);
+    }
+  } catch { /* сховище недоступне */ }
+}
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
+}
+function loadCachedShifts(uid) {
+  try { return JSON.parse(localStorage.getItem(SHIFTS_CACHE + uid)) || []; } catch { return []; }
+}
+function cachingSetShifts(uid) {
+  return (list) => {
+    try { localStorage.setItem(SHIFTS_CACHE + uid, JSON.stringify(list)); } catch { /* немає місця */ }
+    setShifts(list);
+  };
+}
+
+// Поки Firebase запускається: дії водія виконуються одразу на екрані й стають у чергу
+function queuedStore() {
+  const queued = [];
+  return {
+    queued,
+    put(s) { queued.push(['put', s]); setShifts(shifts.filter((x) => x.id !== s.id).concat(s)); },
+    remove(id) { queued.push(['remove', id]); setShifts(shifts.filter((x) => x.id !== id)); },
+    stop() {},
+  };
+}
+
 function showCloudError(e) {
   console.error(e);
   $('modeNote').textContent = e?.code === 'permission-denied'
@@ -218,8 +258,9 @@ function setTab(tab) {
   $('managerView').hidden = tab !== 'manager';
   $('settingsView').hidden = tab !== 'settings';
   if (tab === 'settings') { showSettings(profile); refreshInstall(); }
-  if (tab === 'manager') startManager(profile);
-  else stopManager();
+  if (tab === 'manager') {
+    cloud.whenReady().then(() => { if (!$('managerView').hidden) startManager(profile); });
+  } else stopManager();
 }
 for (const b of document.querySelectorAll('.side-nav button')) b.addEventListener('click', () => setTab(b.dataset.tab));
 
@@ -304,8 +345,31 @@ function offerMigration() {
 }
 
 function onProfile(p) {
+  saveSession(p);
+  const wasOptimistic = !!profile?.optimistic;
+  const sameUser = !!(p && profile && p.uid === profile.uid && p.role === profile.role);
+
+  // Нічого не змінилось (повторний виклик) — лише оновити ім'я
+  if (sameUser && !wasOptimistic && !p.error) {
+    profile.name = p.name;
+    fillUser(profile);
+    return;
+  }
+
+  // Швидкий старт, але сервер поки недоступний (немає інтернету): лишаємо екран, пишемо в чергу бази
+  if (p?.error && wasOptimistic && p.uid === profile.uid) {
+    if (store?.queued) {
+      const pending = store.queued;
+      store = cloudStore(profile, cachingSetShifts(profile.uid));
+      for (const [op, arg] of pending) store[op](arg);
+    }
+    $('modeNote').textContent = 'Немає зв\'язку з сервером: зміни збережено на телефоні, синхронізуються пізніше.';
+    return;
+  }
+
+  const pending = sameUser ? (store?.queued || []) : [];
   store?.stop();
-  stopManager();
+  if (!sameUser) stopManager();
   profile = p;
   if (!p) {
     store = null;
@@ -328,13 +392,14 @@ function onProfile(p) {
     show('wait');
     return;
   }
-  store = cloudStore(p, setShifts);
+  store = cloudStore(p, cachingSetShifts(p.uid));
+  for (const [op, arg] of pending) store[op](arg); // натискання, зроблені під час запуску
   $('navManager').hidden = p.role !== 'manager';
-  setTab('driver');
+  if (!sameUser) setTab('driver');
   show('main');
   updateModeNote();
   if (p.error) showCloudError(p.error);
-  offerMigration();
+  if (!sameUser) offerMigration();
 }
 
 // ---------- Старт ----------
@@ -351,7 +416,20 @@ async function boot() {
     updateModeNote();
     return;
   }
-  show('loading');
+  // Швидкий старт: якщо на цьому телефоні вже входили — одразу показуємо «Мій час»
+  const cached = loadSession();
+  if (cached) {
+    profile = { ...cached, optimistic: true };
+    fillUser(profile);
+    store = queuedStore();
+    $('navManager').hidden = cached.role !== 'manager';
+    setTab('driver');
+    show('main');
+    setShifts(loadCachedShifts(cached.uid));
+    $('modeNote').textContent = 'Синхронізація…';
+  } else {
+    show('loading');
+  }
   try {
     await cloud.initCloud();
     cloud.onUser(onProfile);

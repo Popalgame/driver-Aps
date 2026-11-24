@@ -20,10 +20,18 @@ export const cloudEnabled = !!config;
 
 let fb, auth, db;
 
+let readyResolve;
+const ready = new Promise((r) => { readyResolve = r; });
+// Чекати, поки Firebase завантажиться (для дій, які користувач може натиснути одразу після старту)
+export const whenReady = () => ready;
+
 export async function initCloud() {
   fb = await import('../vendor/firebase.js');
   const app = fb.initializeApp(config);
-  auth = fb.getAuth(app);
+  // Без модуля входу через Google/перенаправлень (getAuth його підключає й чекає на нього при старті)
+  auth = fb.initializeAuth(app, {
+    persistence: [fb.indexedDBLocalPersistence, fb.browserLocalPersistence, fb.browserSessionPersistence],
+  });
   // Локальний кеш: зміни зберігаються без інтернету і відправляються, коли зв'язок повернеться
   db = fb.initializeFirestore(app, {
     localCache: fb.persistentLocalCache({ tabManager: fb.persistentMultipleTabManager() }),
@@ -32,6 +40,7 @@ export async function initCloud() {
     fb.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
     fb.connectFirestoreEmulator(db, '127.0.0.1', 8080);
   }
+  readyResolve();
 }
 
 // ---------- Вхід ----------
@@ -88,10 +97,14 @@ export async function signIn(email, password, remember = true) {
 export const resetPassword = (email) => fb.sendPasswordResetEmail(auth, email);
 
 // ---------- Налаштування профілю ----------
-export const updateMyName = (uid, name) => fb.updateDoc(fb.doc(db, 'users', uid), { name });
+export async function updateMyName(uid, name) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'users', uid), { name });
+}
 
 // Firebase вимагає недавнього входу — спершу перевіряємо поточний пароль
 export async function changePassword(current, next) {
+  await ready;
   const u = auth.currentUser;
   if (!u) throw new Error('Не виконано вхід');
   await fb.reauthenticateWithCredential(u, fb.EmailAuthProvider.credential(u.email, current));
@@ -104,6 +117,7 @@ export const logout = () => fb.signOut(auth);
 // Створює обліковий запис водія. Окремий екземпляр Firebase (у пам'яті),
 // щоб керівник не вийшов зі свого облікового запису.
 export async function createDriver(name, email, password) {
+  await ready;
   const sec = fb.initializeApp(config, 'add-driver-' + Date.now());
   try {
     const secAuth = fb.initializeAuth(sec, { persistence: fb.inMemoryPersistence });
@@ -120,7 +134,10 @@ export async function createDriver(name, email, password) {
 }
 
 // role: 'driver' (підтвердити / відновити) або 'disabled' (закрити доступ)
-export const setUserRole = (uid, role) => fb.updateDoc(fb.doc(db, 'users', uid), { role });
+export async function setUserRole(uid, role) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'users', uid), { role });
+}
 
 export function authError(e) {
   const map = {

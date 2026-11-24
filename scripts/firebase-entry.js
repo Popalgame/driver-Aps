@@ -2,7 +2,7 @@
 // Беремо лише те, що потрібно апці — так файл менший.
 export { initializeApp, deleteApp } from 'firebase/app';
 export {
-  getAuth, initializeAuth, inMemoryPersistence, browserLocalPersistence, browserSessionPersistence, setPersistence, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  initializeAuth, inMemoryPersistence, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, setPersistence, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   signOut, updateProfile,
   sendPasswordResetEmail, connectAuthEmulator, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
 } from 'firebase/auth';
