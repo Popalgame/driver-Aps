@@ -214,6 +214,27 @@
         </section>
       </div>
 
+      <section class="card p-km">
+        <div class="row"><h2>🚗 Кілометраж</h2><button id="pkExport" class="btn small" type="button">⬇ Excel за місяць</button></div>
+        <div class="month-bar">
+          <button id="pkPrev" class="btn small" type="button" aria-label="Попередній місяць">‹</button>
+          <select id="pkMonthSel" aria-label="Місяць"></select>
+          <button id="pkNext" class="btn small" type="button" aria-label="Наступний місяць">›</button>
+        </div>
+        <div id="pkStats" class="stats km-stats"></div>
+        <div class="km-table-wrap">
+          <table class="km-table">
+            <thead><tr><th>День</th><th>Зранку, км</th><th>За день, км</th></tr></thead>
+            <tbody id="pkRows"></tbody>
+          </table>
+        </div>
+        <p id="pkEmpty" class="muted" hidden>Водій ще не вносив кілометраж.</p>
+        <div id="pkFuelBox" hidden>
+          <h3 class="pk-sub">⛽ Заправки</h3>
+          <ul id="pkFuel" class="history"></ul>
+        </div>
+      </section>
+
       <section class="card">
         <div class="row"><h2>Історія змін</h2><span id="pCount" class="muted small-text"></span></div>
         <ul id="pHistory" class="history"></ul>

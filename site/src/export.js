@@ -2,7 +2,7 @@
 import { breakMs, workMs, workInRange, startOfDay } from './time.js';
 import { driverStats, summarizeByDriver } from './report.js';
 import { buildXlsx, downloadXlsx } from './xlsx.js';
-import { odoRows, byMonth } from './mileage-calc.js';
+import { odoRows, byMonth, drivenByDay, distanceIn } from './mileage-calc.js';
 
 const wdFmt = new Intl.DateTimeFormat('uk-UA', { weekday: 'long' });
 const wdShort = new Intl.DateTimeFormat('uk-UA', { weekday: 'short' });
@@ -124,7 +124,7 @@ export function exportDriver(shifts, name) {
 }
 
 // Усі водії за період [from, to): підсумок, табель по днях, усі зміни
-export function exportTeam(shifts, users, from, to, periodLabel) {
+export function exportTeam(shifts, users, from, to, periodLabel, mileage = []) {
   const now = Date.now();
   const inRange = shifts.filter((s) => workInRange(s, from, to, now) > 0 || (s.end == null && s.start < to));
   const rowsAll = summarizeByDriver(inRange, users, from, to, now);
@@ -169,6 +169,28 @@ export function exportTeam(shifts, users, from, to, periodLabel) {
       total: { label: 'Разом', sum: days.map((_, i) => i + 1).concat(days.length + 1) },
     });
   }
+  // Кілометраж водіїв: пробіг по днях і показники зранку (водії × дні)
+  if (mileage.length && days.length <= 62) {
+    const driven = drivenByDay(mileage);
+    const kmUids = [...new Set(mileage.map((e) => e.uid))];
+    const nameOf = (uid) => names.get(uid) || users.find((u) => u.id === uid)?.name || 'Без імені';
+    kmUids.sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'uk'));
+    const dayCols = days.map((d) => ({ header: `${ddmm.format(d)} ${wdShort.format(d)}`, width: 9, type: 'int' }));
+    sheets.push({
+      name: 'Пробіг по днях (км)',
+      columns: [{ header: 'Водій', width: 24, type: 'text' }, ...dayCols, { header: 'Разом, км', width: 11, type: 'int' }],
+      rows: kmUids.map((uid) => {
+        const m = driven.get(uid) || new Map();
+        return [nameOf(uid), ...days.map((d) => m.get(d) ?? null), distanceIn(mileage.filter((e) => e.uid === uid), from, to)];
+      }),
+      total: { label: 'Разом', sum: days.map((_, i) => i + 1).concat(days.length + 1) },
+    });
+    sheets.push({
+      name: 'Кілометраж зранку',
+      columns: [{ header: 'Водій', width: 24, type: 'text' }, ...dayCols.map((c) => ({ ...c, width: 10 }))],
+      rows: kmUids.map((uid) => [nameOf(uid), ...days.map((d) => mileage.find((e) => e.uid === uid && e.type === 'odo' && e.at === d)?.km ?? null)]),
+    });
+  }
   sheets.push(shiftsSheet(inRange, names, now, [from, to]));
   downloadXlsx(buildXlsx(sheets), `Driver-Aps_vodii_${isoDay(from)}_${isoDay(to - 1)}.xlsx`);
 }
@@ -190,10 +212,12 @@ export function exportMileage(entries, from, to, name) {
         { header: 'Дата', width: 12, type: 'date' },
         { header: 'День тижня', width: 13, type: 'text' },
         { header: 'Кілометраж (зранку), км', width: 16, type: 'int' },
-        { header: 'Проїхано від попереднього запису, км', width: 18, type: 'int' },
+        { header: 'Проїхано за день, км', width: 14, type: 'int' },
         { header: 'Нотатка', width: 30, type: 'wrap' },
       ],
-      rows: odo.map((e) => [e.at, cap(wdFmt.format(e.at)), e.km, e.diff, e.note || '']),
+      // Пробіг дня = ранок наступного запису − ранок цього; якщо дні пропущено — примітка
+      rows: odo.map((e) => [e.at, cap(wdFmt.format(e.at)), e.km, e.driven,
+        [e.span > 1 ? `за ${e.span} дні(в) — пропущено записи` : '', e.note || ''].filter(Boolean).join(' · ')]),
       total: { label: 'Разом', sum: [3] },
     },
     {

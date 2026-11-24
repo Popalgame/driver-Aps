@@ -2,6 +2,7 @@
 // додавання водіїв, підтвердження й закриття доступу.
 import { hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { summarizeByDriver } from './report.js';
+import { distanceIn } from './mileage-calc.js';
 import * as cloud from './cloud.js';
 import { openProfile, refreshProfile } from './profile.js';
 
@@ -14,6 +15,8 @@ let users = [];
 let shifts = [];
 let range = null;
 let stopUsers = null, stopShifts = null, timer = null;
+let mileage = [], stopMileageW = null;
+const kmFmt = new Intl.NumberFormat('uk-UA');
 
 const timeFmt = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
 const dateLong = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -43,6 +46,10 @@ function subscribe() {
   shifts = [];
   // Зміни, що почались до 24 год раніше, теж можуть заходити в період (нічні зміни)
   stopShifts = cloud.watchAllShifts(range[0] - DAY, range[1], (list) => { shifts = list; $('mErr').textContent = ''; render(); }, showError);
+  // Кілометраж: пробіг періоду рахується до першого показника після нього — беремо з запасом
+  stopMileageW?.();
+  mileage = [];
+  stopMileageW = cloud.watchAllMileage(range[0], range[1] + 40 * DAY, (list) => { mileage = list; render(); }, (e) => console.error(e));
   render();
 }
 
@@ -61,7 +68,8 @@ export function startManager() {
 export function stopManager() {
   if (!running) return;
   running = false;
-  stopUsers?.(); stopShifts?.(); clearInterval(timer);
+  stopUsers?.(); stopShifts?.(); stopMileageW?.(); clearInterval(timer);
+  stopMileageW = null;
   stopUsers = stopShifts = null;
 }
 
@@ -81,7 +89,7 @@ $('mExportBtn').addEventListener('click', async () => {
   const label = period === 'custom'
     ? `${dateLong.format(range[0])} – ${dateLong.format(range[1] - 1)}`
     : { day: 'сьогодні', week: 'цей тиждень', month: 'цей місяць' }[period];
-  exportTeam(shifts, users, range[0], range[1], label);
+  exportTeam(shifts, users, range[0], range[1], label, mileage);
 });
 
 // ---------- Додати водія ----------
@@ -204,6 +212,8 @@ function render() {
     left.append(el('div', cls, status));
     const right = el('div', 'dtotal');
     right.append(el('b', '', hm(r.total)), el('span', 'muted', `${r.count} змін(и)`));
+    const mine = mileage.filter((e) => e.uid === r.uid);
+    if (mine.length) right.append(el('span', 'dkm', `🚗 ${kmFmt.format(distanceIn(mine, range[0], range[1]))} км`));
     head.append(left, right);
     li.append(head);
 

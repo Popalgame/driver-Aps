@@ -210,3 +210,14 @@ export async function removeMileage(id) {
   await ready;
   return fb.deleteDoc(fb.doc(db, 'mileage', id));
 }
+
+// Для керівника: записи всіх водіїв за [from, to)
+export function watchAllMileage(from, to, cb, onError) {
+  let stop = null, cancelled = false;
+  ready.then(() => {
+    if (cancelled) return;
+    const q = fb.query(fb.collection(db, 'mileage'), fb.where('at', '>=', from), fb.where('at', '<', to));
+    stop = fb.onSnapshot(q, (snap) => cb(snap.docs.map(fromDoc)), onError);
+  });
+  return () => { cancelled = true; stop?.(); };
+}

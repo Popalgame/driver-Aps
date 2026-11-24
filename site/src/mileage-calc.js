@@ -7,10 +7,38 @@ import { startOfDay } from './time.js';
 
 const sortAt = (a, b) => a.at - b.at;
 
-// Показники одометра по днях з «проїхано» відносно попереднього запису
+// Показники одометра по днях.
+//   diff   — від попереднього запису (скільки проїхав з минулого ранку)
+//   driven — пробіг за цей день: показник наступного запису мінус цей (null, поки наступного немає)
+//   span   — скільки днів охоплює driven (1 — звичайно; більше, якщо дні пропущено)
 export function odoRows(entries) {
   const odo = entries.filter((e) => e.type === 'odo' && typeof e.km === 'number').sort(sortAt);
-  return odo.map((e, i) => ({ ...e, diff: i ? e.km - odo[i - 1].km : null }));
+  return odo.map((e, i) => {
+    const next = odo[i + 1];
+    return {
+      ...e,
+      diff: i ? e.km - odo[i - 1].km : null,
+      driven: next ? next.km - e.km : null,
+      span: next ? Math.max(1, Math.round((next.at - e.at) / 86400000)) : null,
+    };
+  });
+}
+
+// Пробіг кожного водія по днях: Map(uid → Map(dayStart → км)); пробіг дня D = ранок(D+1) − ранок(D).
+// Якщо дні пропущено, пробіг записується на перший з них.
+export function drivenByDay(entries) {
+  const byUid = new Map();
+  for (const e of entries) {
+    if (!byUid.has(e.uid)) byUid.set(e.uid, []);
+    byUid.get(e.uid).push(e);
+  }
+  const out = new Map();
+  for (const [uid, list] of byUid) {
+    const m = new Map();
+    for (const r of odoRows(list)) if (r.driven != null) m.set(r.at, r.driven);
+    out.set(uid, m);
+  }
+  return out;
 }
 
 // Пробіг за період [from, to): від першого показника в періоді до першого показника
@@ -64,4 +92,12 @@ export function previousOdo(entries, dayStart) {
 export const dayKey = (ms) => {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// «+317 км за день» / «+580 км за 2 дні»
+const nf = new Intl.NumberFormat('uk-UA');
+export const drivenText = (r) => {
+  if (r.driven == null) return '';
+  const v = `${r.driven >= 0 ? '+' : '−'}${nf.format(Math.abs(r.driven))} км`;
+  return r.span > 1 ? `${v} за ${r.span} ${r.span < 5 ? 'дні' : 'днів'}` : `${v} за день`;
 };

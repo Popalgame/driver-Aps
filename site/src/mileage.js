@@ -1,7 +1,7 @@
 // Вкладка «Кілометраж»: показник одометра щоранку, заправки, підсумки місяця, історія, Excel.
 import * as cloud from './cloud.js';
 import { startOfDay, startOfMonth } from './time.js';
-import { odoRows, summary, previousOdo, dayKey } from './mileage-calc.js';
+import { odoRows, summary, previousOdo, dayKey, drivenText } from './mileage-calc.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -16,6 +16,7 @@ const monthFmt = new Intl.DateTimeFormat('uk-UA', { month: 'long', year: 'numeri
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const km = (v) => `${num.format(v)} км`;
 const kmDiff = (v) => `${v >= 0 ? '+' : '−'}${km(Math.abs(v))}`;
+
 
 let user = null;        // { uid, name } або null (локальний режим)
 let entries = [];
@@ -198,7 +199,7 @@ function renderToday() {
   $('odoSave').textContent = cur ? 'Оновити' : 'Зберегти';
   const parts = [];
   if (prev) parts.push(`Попередній запис: ${km(prev.km)} (${dateFmt.format(prev.at)})`);
-  if (prev && cur) parts.push(`проїхано ${kmDiff(cur.km - prev.km)}`);
+  if (prev && cur) parts.push(`відтоді проїхано ${kmDiff(cur.km - prev.km)}`);
   if (!prev && !cur) parts.push('Перший запис — впиши, скільки зараз на одометрі.');
   $('odoHint').textContent = parts.join(' · ');
   $('odoDone').hidden = !cur;
@@ -226,7 +227,7 @@ function renderStats() {
 function renderHistory() {
   const [from, to] = range();
   const inP = (e) => e.at >= from && e.at < to;
-  const diffs = new Map(odoRows(entries).map((r) => [r.id, r.diff]));
+  const rowsById = new Map(odoRows(entries).map((r) => [r.id, r]));
   const list = entries.filter(inP).sort((a, b) => b.at - a.at || (a.type === 'odo' ? 1 : -1));
   $('kmHistTitle').textContent = `Історія · ${monthFmt.format(month).replace(/ \d{4}.*$/, '')}`;
   $('kmEmpty').textContent = isCurrent()
@@ -248,8 +249,9 @@ function renderHistory() {
     if (e.type === 'odo') {
       left.append(el('div', 't', `🚗 ${km(e.km)}`));
       if (e.note) left.append(el('div', 'n', e.note));
-      const diff = diffs.get(e.id);
-      right.textContent = diff == null ? '' : kmDiff(diff);
+      const r = rowsById.get(e.id);
+      right.textContent = r?.driven != null ? drivenText(r) : '';
+      if (r?.driven == null) right.append(el('span', 'muted small-text', e.at === +startOfDay() ? 'сьогодні' : ''));
     } else {
       left.append(el('div', 't', `⛽ ${num2.format(e.liters)} л` + (e.amount ? ` · ${num2.format(e.amount)}` : '')));
       const meta = [timeFmt.format(e.at), e.km != null ? km(e.km) : '', e.amount && e.liters ? `${num2.format(e.amount / e.liters)} за л` : '', e.note].filter(Boolean).join(' · ');

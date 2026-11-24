@@ -1,7 +1,8 @@
 // Сторінка водія для керівника: статус наживо, підсумки за періоди, графік тижня, уся історія, Excel.
-import { breakMs, workMs, clock, hm, startOfDay, startOfWeek } from './time.js';
+import { breakMs, workMs, clock, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { driverStats, weekByDay } from './report.js';
 import * as cloud from './cloud.js';
+import { odoRows, summary, drivenText } from './mileage-calc.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -19,6 +20,9 @@ const HISTORY_STEP = 30;
 let uid = null;
 let shifts = [];
 let stopWatch = null;
+let stopKm = null;
+let kmEntries = [];
+let kmMonth = null;
 let tick = null;
 let weekOffset = 0;   // 0 — цей тиждень, -1 — минулий…
 let shown = HISTORY_STEP;
@@ -41,6 +45,9 @@ export function openProfile(id, userGetter, roleSetter, back) {
   $('profileView').hidden = false;
   scrollTo(0, 0);
   render();
+  kmEntries = [];
+  kmMonth = startOfMonth();
+  stopKm = cloud.watchMileage(id, (list) => { kmEntries = list; renderKm(); }, (e) => console.error(e));
   stopWatch = cloud.watchMyShifts(id, (list) => { shifts = list; render(); }, (e) => {
     console.error(e);
     $('pMeta').textContent = '⚠ Не вдалося завантажити зміни: ' + (e?.message || e);
@@ -51,6 +58,8 @@ export function openProfile(id, userGetter, roleSetter, back) {
 export function closeProfile() {
   stopWatch?.();
   stopWatch = null;
+  stopKm?.();
+  stopKm = null;
   clearInterval(tick);
   uid = null;
   $('profileView').hidden = true;
@@ -87,6 +96,7 @@ function render() {
   renderLive();
   renderStats();
   renderWeek();
+  renderKm();
   renderHistory();
 }
 
@@ -246,5 +256,95 @@ function renderHistory() {
       li.append(left, el('div', 'd', hm(workMs(s, now))));
       list.append(li);
     }
+  }
+}
+
+// ---------- Кілометраж водія ----------
+const kmNum = new Intl.NumberFormat('uk-UA');
+const kmNum2 = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 });
+const monthFmt = new Intl.DateTimeFormat('uk-UA', { month: 'long', year: 'numeric' });
+const rowDay = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
+const addMonths = (d, n) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; };
+const kmRange = () => [+kmMonth, +addMonths(kmMonth, 1)];
+
+function setKmMonth(d) {
+  const cur = startOfMonth();
+  kmMonth = +d > +cur ? cur : startOfMonth(d);
+  renderKm();
+}
+$('pkPrev').addEventListener('click', () => setKmMonth(addMonths(kmMonth, -1)));
+$('pkNext').addEventListener('click', () => setKmMonth(addMonths(kmMonth, 1)));
+$('pkMonthSel').addEventListener('change', (e) => setKmMonth(new Date(Number(e.target.value))));
+$('pkExport').addEventListener('click', async () => {
+  const { exportMileage } = await import('./export.js');
+  const [from, to] = kmRange();
+  exportMileage(kmEntries, from, to, user().name);
+});
+
+function renderKm() {
+  if (!uid || !kmMonth) return;
+  const cur = startOfMonth();
+  // список місяців: від першого запису водія до поточного
+  let m = kmEntries.length ? startOfMonth(new Date(Math.min(...kmEntries.map((e) => e.at)))) : cur;
+  if (+kmMonth < +m) m = new Date(kmMonth);
+  const opts = [];
+  for (; +m <= +cur; m = addMonths(m, 1)) opts.unshift(+m);
+  $('pkMonthSel').replaceChildren(...opts.map((v) => Object.assign(document.createElement('option'),
+    { value: String(v), textContent: cap(monthFmt.format(v)) + (v === +cur ? ' (зараз)' : '') })));
+  $('pkMonthSel').value = String(+kmMonth);
+  $('pkNext').disabled = +kmMonth === +cur;
+
+  const [from, to] = kmRange();
+  const s = summary(kmEntries, from, to);
+  const box = $('pkStats');
+  box.replaceChildren();
+  for (const [label, v] of [
+    ['Пробіг', `${kmNum.format(s.km)} км`],
+    ['Заправлено', `${kmNum2.format(s.liters)} л`],
+    ['Витрачено', kmNum2.format(s.amount)],
+    ['Середня витрата', s.per100 ? `${kmNum2.format(s.per100)} л/100 км` : '—'],
+  ]) {
+    const t = el('div', 'stat');
+    t.append(el('span', '', label), el('b', '', v));
+    box.append(t);
+  }
+
+  // Кожен день місяця (до сьогодні), найновіші зверху; пропущені дні видно
+  const rows = new Map(odoRows(kmEntries).map((r) => [r.at, r]));
+  const today = +startOfDay();
+  const body = $('pkRows');
+  body.replaceChildren();
+  $('pkEmpty').hidden = kmEntries.some((e) => e.type === 'odo');
+  // Дні — від першого запису водія (порожні дні до нього не показуємо); пропуски між записами видно
+  const odoAts = kmEntries.filter((e) => e.type === 'odo').map((e) => e.at);
+  const firstOdo = odoAts.length ? Math.min(...odoAts) : Infinity;
+  const lastDay = Math.min(to - 1, today);
+  for (let d = +startOfDay(new Date(lastDay)); d >= Math.max(from, firstOdo); d = +startOfDay(new Date(d - 12 * 3600e3))) {
+    const r = rows.get(d);
+    const tr = el('tr', (r ? '' : 'miss') + ([0, 6].includes(new Date(d).getDay()) ? ' weekend' : ''));
+    let drv = '';
+    if (r) drv = r.driven != null ? `${r.driven >= 0 ? '+' : '−'}${kmNum.format(Math.abs(r.driven))}${r.span > 1 ? ` (${r.span} дн.)` : ''}` : (d === today ? 'сьогодні' : '—');
+    tr.append(el('td', '', cap(rowDay.format(d))), el('td', '', r ? kmNum.format(r.km) : '—'), el('td', 'drv', drv));
+    if (r?.span > 1) tr.title = drivenText(r);
+    body.append(tr);
+  }
+  const foot = document.createElement('tfoot');
+  const ft = el('tr');
+  ft.append(el('td', '', 'Разом'), el('td', ''), el('td', 'drv', kmNum.format(s.km)));
+  foot.append(ft);
+  body.parentElement.querySelector('tfoot')?.remove();
+  body.parentElement.append(foot);
+
+  const fuel = kmEntries.filter((e) => e.type === 'fuel' && e.at >= from && e.at < to).sort((a, b) => b.at - a.at);
+  $('pkFuelBox').hidden = !fuel.length;
+  const ul = $('pkFuel');
+  ul.replaceChildren();
+  for (const e of fuel) {
+    const li = el('li', 'shift static km-row fuel');
+    const left = el('div');
+    left.append(el('div', 't', `⛽ ${kmNum2.format(e.liters)} л` + (e.amount ? ` · ${kmNum2.format(e.amount)}` : '')));
+    left.append(el('div', 'n', [shortDate.format(e.at), timeFmt.format(e.at), e.km != null ? `${kmNum.format(e.km)} км` : '', e.amount && e.liters ? `${kmNum2.format(e.amount / e.liters)} за л` : '', e.note].filter(Boolean).join(' · ')));
+    li.append(left);
+    ul.append(li);
   }
 }

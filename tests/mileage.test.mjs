@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { odoRows, distanceIn, fuelIn, summary, byMonth, previousOdo, dayKey } from '../site/src/mileage-calc.js';
+import { odoRows, distanceIn, fuelIn, summary, byMonth, previousOdo, dayKey, drivenByDay } from '../site/src/mileage-calc.js';
 
 const day = (m, d) => +new Date(2026, m, d);
 const odo = (m, d, km) => ({ type: 'odo', at: day(m, d), km, liters: null, amount: null, note: '' });
@@ -16,6 +16,18 @@ const entries = [
 test('проїхано між сусідніми показниками', () => {
   const rows = odoRows(entries);
   assert.deepEqual(rows.map((r) => r.diff), [null, 500, 300, 600, 1100, 400]);
+  // пробіг за день — до наступного ранку; 2.11 → 4.11 пропущено 3.11
+  assert.deepEqual(rows.map((r) => r.driven), [500, 300, 600, 1100, 400, null]);
+  assert.deepEqual(rows.map((r) => r.span), [2, 1, 2, 26, 1, null]); // 30.10→1.11 = 2 дні
+});
+
+test('пробіг за день по водіях = пробіг місяця в сумі', () => {
+  const a = entries.map((e) => ({ ...e, uid: 'a' }));
+  const b = [odo(10, 1, 5000), odo(10, 2, 5100)].map((e) => ({ ...e, uid: 'b' }));
+  const m = drivenByDay([...a, ...b]);
+  assert.equal(m.get('b').get(day(10, 1)), 100);
+  const nov = [...m.get('a')].filter(([d]) => d >= day(10, 1) && d < day(11, 1)).reduce((x, [, v]) => x + v, 0);
+  assert.equal(nov, distanceIn(a, day(10, 1), day(11, 1)));
 });
 
 test('пробіг за місяць — до ранку 1-го числа наступного місяця', () => {

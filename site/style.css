@@ -406,3 +406,18 @@ body.auth .hero { margin-bottom: 16px; }
   #mileageView .km-hist { grid-area: hist; }
   .km-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+.dtotal .dkm { display: block; font-size: 13px; color: var(--text); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* Кілометраж водія (для керівника) */
+.p-km .month-bar { margin: 12px 0 0; }
+.km-table-wrap { margin-top: 14px; overflow-x: auto; }
+.km-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.km-table th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.km-table th:not(:first-child), .km-table td:not(:first-child) { text-align: right; }
+.km-table td { padding: 9px 6px; border-bottom: 1px solid rgba(29,58,120,.6); white-space: nowrap; }
+.km-table tr.miss td { color: var(--muted); }
+.km-table tr.weekend td:first-child { color: #c4b5fd; }
+.km-table td.drv { font-weight: 700; }
+.km-table tfoot td { font-weight: 800; border-top: 2px solid var(--line); border-bottom: 0; }
+.pk-sub { font-size: 15px; margin: 16px 0 0; }
