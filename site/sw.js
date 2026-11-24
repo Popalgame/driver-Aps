@@ -1,4 +1,4 @@
-const CACHE = 'driver-time-v6';
+const CACHE = 'driver-time-v7';
 const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'src/report.js', 'src/cloud.js', 'src/manager.js', 'src/firebase-config.js',
   'vendor/firebase.js', 'manifest.webmanifest', 'icon.svg'];
 

@@ -1,7 +1,7 @@
 {
   "name": "driver-aps",
   "version": "0.1.0",
-  "description": "Час у дорозі — PWA для водіїв: облік робочого часу, перерви, підсумки.",
+  "description": "driver-Aps — PWA для водіїв: облік робочого часу, перерви, підсумки.",
   "private": true,
   "type": "module",
   "scripts": {

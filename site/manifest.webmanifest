@@ -1,6 +1,6 @@
 {
-  "name": "Час у дорозі",
-  "short_name": "Час у дорозі",
+  "name": "driver-Aps",
+  "short_name": "driver-Aps",
   "description": "Облік робочого часу водія: початок і кінець зміни, перерви, підсумки.",
   "lang": "uk",
   "start_url": "./",
