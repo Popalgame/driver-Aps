@@ -9,6 +9,9 @@
   <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
   <meta name="apple-mobile-web-app-title" content="Driver-Aps">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -84,7 +87,7 @@
         <div class="stat"><span>Цей місяць</span><b id="sMonth">0 год 00 хв</b></div>
       </section>
 
-      <section class="card">
+      <section class="card history-card">
         <div class="row">
           <h2>Історія змін</h2>
           <button id="exportBtn" class="btn small">⬇ CSV</button>
@@ -95,7 +98,7 @@
     </div>
 
     <div id="managerView" hidden>
-      <section class="card">
+      <section class="card period-card">
         <div class="seg small" id="period">
           <button type="button" data-p="day" class="on">Сьогодні</button>
           <button type="button" data-p="week">Тиждень</button>
