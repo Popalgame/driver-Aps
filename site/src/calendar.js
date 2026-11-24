@@ -2,6 +2,7 @@
 // Водій бачить і додає події лише своїх проєктів; керівник — усіх.
 import * as cloud from './cloud.js';
 import * as feed from './feed.js';
+import { iconText } from './icons.js';
 import { startOfMonth } from './time.js';
 import { dayKey } from './mileage-calc.js';
 import { COLORS, monthGrid, eventsByDate, upcoming, keyToDate, peopleText } from './calendar-calc.js';
@@ -106,7 +107,7 @@ function renderProjects() {
   const one = filter ? projById(filter) : projects.length === 1 ? projects[0] : null;
   if (one) {
     const names = Object.values(one.names || {});
-    box.append(el('p', 'cal-team muted', names.length ? '👥 ' + names.join(', ') : '👥 Водіїв ще не додано'));
+    box.append(iconText(el('p', 'cal-team muted ih'), 'users', names.length ? names.join(', ') : 'Водіїв ще не додано'));
   }
 }
 
@@ -146,10 +147,12 @@ function item(e, withDate) {
   top.append(el('b', 'ev-what', e.title));
   li.append(top);
   const meta = [];
-  if (e.people) meta.push('👥 ' + peopleText(e.people));
+  if (e.people) meta.push(peopleText(e.people));
   if (projects.length > 1 || isManager()) meta.push(projById(e.project)?.name || '');
   if (e.byName) meta.push('додав(ла): ' + e.byName);
-  li.append(el('div', 'ev-meta', meta.filter(Boolean).join(' · ')));
+  const m = el('div', 'ev-meta', meta.filter(Boolean).join(' · '));
+  if (e.people) iconText(m, 'users', meta.filter(Boolean).join(' · '));
+  li.append(m);
   if (e.note) li.append(el('div', 'ev-note', e.note));
   const open = () => openEvent(e);
   li.addEventListener('click', open);

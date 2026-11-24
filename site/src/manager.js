@@ -5,6 +5,7 @@ import { summarizeByDriver } from './report.js';
 import { distanceIn } from './mileage-calc.js';
 import * as cloud from './cloud.js';
 import { openProfile, refreshProfile } from './profile.js';
+import { iconText } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const DAY = 24 * 3600e3;
@@ -212,14 +213,16 @@ function render() {
     if (off) {
       status = 'Доступ закрито'; cls = 'badge off';
     } else if (r.active) {
-      status = r.onBreak ? `☕ Перерва · з ${timeFmt.format(r.active.start)}` : `● У дорозі з ${timeFmt.format(r.active.start)}`;
+      status = r.onBreak ? `Перерва · з ${timeFmt.format(r.active.start)}` : `● У дорозі з ${timeFmt.format(r.active.start)}`;
       cls = 'badge ' + (r.onBreak ? 'pause' : 'on');
     }
-    left.append(el('div', cls, status));
+    const badge = el('div', cls, status);
+    if (r.active && r.onBreak) iconText(badge, 'coffee', status);
+    left.append(badge);
     const right = el('div', 'dtotal');
     right.append(el('b', '', hm(r.total)), el('span', 'muted', `${r.count} змін(и)`));
     const mine = mileage.filter((e) => e.uid === r.uid);
-    if (mine.length) right.append(el('span', 'dkm', `🚗 ${kmFmt.format(distanceIn(mine, range[0], range[1]))} км`));
+    if (mine.length) right.append(iconText(el('span', 'dkm'), 'car', `${kmFmt.format(distanceIn(mine, range[0], range[1]))} км`));
     head.append(left, right);
     li.append(head);
 

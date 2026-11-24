@@ -2,6 +2,7 @@
 import { breakMs, workMs, clock, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { driverStats, weekByDay } from './report.js';
 import * as cloud from './cloud.js';
+import { iconText } from './icons.js';
 import { odoRows, summary, drivenText } from './mileage-calc.js';
 
 const $ = (id) => document.getElementById(id);
@@ -123,7 +124,7 @@ function renderLive() {
     st.textContent = 'Доступ закрито'; st.className = 'badge off';
   } else if (s) {
     const paused = s.breaks.some((b) => b.end == null);
-    st.textContent = paused ? '☕ Перерва' : '● У дорозі';
+    if (paused) iconText(st, 'coffee', 'Перерва'); else st.textContent = '● У дорозі';
     st.className = 'badge ' + (paused ? 'pause' : 'on');
   } else {
     st.textContent = 'Не на зміні'; st.className = 'badge';
@@ -342,7 +343,7 @@ function renderKm() {
   for (const e of fuel) {
     const li = el('li', 'shift static km-row fuel');
     const left = el('div');
-    left.append(el('div', 't', '⛽ ' + ([e.liters != null ? `${kmNum2.format(e.liters)} л` : '', e.amount ? kmNum2.format(e.amount) : ''].filter(Boolean).join(' · ') || 'Заправка')));
+    left.append(iconText(el('div', 't'), 'fuel', [e.liters != null ? `${kmNum2.format(e.liters)} л` : '', e.amount ? kmNum2.format(e.amount) : ''].filter(Boolean).join(' · ') || 'Заправка'));
     left.append(el('div', 'n', [shortDate.format(e.at), timeFmt.format(e.at), e.km != null ? `${kmNum.format(e.km)} км` : '', e.amount && e.liters ? `${kmNum2.format(e.amount / e.liters)} за л` : '', e.note].filter(Boolean).join(' · ')));
     li.append(left);
     ul.append(li);

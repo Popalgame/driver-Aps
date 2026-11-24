@@ -646,3 +646,60 @@ html.big-text .ii-sub, html.big-text .ii-when { font-size: 15px; }
 .field-row { margin: 4px 0 4px; }
 .field-row .field-label { margin: 0; }
 html.big-text .pchip { font-size: 16px; }
+
+/* ---------- Іконки (src/icons.js) ---------- */
+svg.i {
+  width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+svg.i .f { fill: currentColor; stroke: none; }
+.btn svg.i { margin-right: 2px; }
+.btn.big svg.i { width: 1.05em; height: 1.05em; }
+.ih { display: flex; align-items: center; gap: 8px; }
+.ih svg.i { vertical-align: 0; color: var(--accent); }
+.badge.ih svg.i, .cal-team.ih svg.i { color: inherit; }
+.km-row .t svg.i { color: var(--muted); margin-right: 4px; }
+.km-row.fuel .t svg.i { color: #fbbf24; }
+.dkm svg.i { color: var(--muted); margin-right: 3px; }
+.ev-meta svg.i { margin-right: 3px; }
+.odo-done svg.i, .ok-line svg.i, #instDone svg.i { color: var(--accent-on); }
+.ok-line { margin: 0 0 8px; }
+.menu-btn svg.i { width: 24px; height: 24px; }
+.inbox-btn svg.i { width: 24px; height: 24px; vertical-align: 0; }
+#dGen svg.i { margin: 0; }
+.ico-share { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--line); color: #93c5fd; vertical-align: middle; }
+.ico-share svg.i { width: 17px; height: 17px; vertical-align: 0; }
+
+/* Бічне меню: кольорові плитки з іконками */
+.side-nav .ico {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; flex: none;
+  color: #fff; background: linear-gradient(140deg, var(--t1), var(--t2));
+  box-shadow: 0 4px 12px -4px var(--t2), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.side-nav .ico svg.i { width: 19px; height: 19px; vertical-align: 0; }
+.side-nav [data-tab=driver]   { --t1: #60a5fa; --t2: #2563eb; }
+.side-nav [data-tab=mileage]  { --t1: #2dd4bf; --t2: #0d9488; }
+.side-nav [data-tab=calendar] { --t1: #f472b6; --t2: #db2777; }
+.side-nav [data-tab=manager]  { --t1: #fbbf24; --t2: #d97706; }
+.side-nav [data-tab=projects] { --t1: #a78bfa; --t2: #7c3aed; }
+.side-nav [data-tab=settings] { --t1: #94a3b8; --t2: #475569; }
+.side-nav button.on .ico { box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 4px 12px -4px var(--t2); }
+
+/* Сповіщення: іконка в кольоровому кружечку */
+.ii-ico {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  color: #fff; background: linear-gradient(140deg, var(--t1), var(--t2)); font-size: 0;
+}
+.ii-ico svg.i { width: 19px; height: 19px; vertical-align: 0; }
+.ii-calendar { --t1: #f472b6; --t2: #db2777; }
+.ii-pencil   { --t1: #60a5fa; --t2: #2563eb; }
+.ii-alarm    { --t1: #fbbf24; --t2: #d97706; }
+.ii-folder   { --t1: #a78bfa; --t2: #7c3aed; }
+.ii-userPlus { --t1: #2dd4bf; --t2: #0d9488; }
+.empty[hidden] { display: none; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 420px; margin: 32px auto; }
+.empty-ico {
+  display: grid; place-items: center; width: 72px; height: 72px; border-radius: 22px; color: #fff;
+  background: linear-gradient(140deg, #a78bfa, #7c3aed); box-shadow: 0 12px 30px -10px #7c3aed;
+}
+.empty-ico svg.i { width: 36px; height: 36px; vertical-align: 0; }

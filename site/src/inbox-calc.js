@@ -3,7 +3,7 @@
 //   ctx = { uid, role, projects, events, users, joined: {pid: мс}, since, now }
 // Елемент: { id, at, icon, text, sub, go: { tab, date?, project? } }
 import { dayKey } from './mileage-calc.js';
-import { keyToDate } from './calendar-calc.js';
+import { keyToDate, peopleText } from './calendar-calc.js';
 
 const DAY = 86400000;
 const dateFmt = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', day: 'numeric', month: 'long' });
@@ -21,17 +21,17 @@ export function buildItems({ uid, role, projects = [], events = [], users = [], 
     if (!proj.has(e.project)) continue;
     const go = { tab: 'calendar', date: e.date, project: e.project };
     if (e.by !== uid && e.createdAt >= since) {
-      items.push({ id: `new-${e.id}`, at: e.createdAt, icon: '📅', text: `${e.byName || 'Хтось'} додав(ла) подію «${e.title}»`, sub: evSub(e), go });
+      items.push({ id: `new-${e.id}`, at: e.createdAt, icon: 'calendar', text: `${e.byName || 'Хтось'} додав(ла) подію «${e.title}»`, sub: evSub(e), go });
     }
     if (e.editedBy && e.editedBy !== uid && e.updatedAt >= since && e.updatedAt - e.createdAt > 2000) {
-      items.push({ id: `edit-${e.id}-${e.updatedAt}`, at: e.updatedAt, icon: '✏️', text: `${e.editedByName || 'Хтось'} змінив(ла) подію «${e.title}»`, sub: evSub(e), go });
+      items.push({ id: `edit-${e.id}-${e.updatedAt}`, at: e.updatedAt, icon: 'pencil', text: `${e.editedByName || 'Хтось'} змінив(ла) подію «${e.title}»`, sub: evSub(e), go });
     }
     if (e.date === today || e.date === tomorrow) {
       const when = e.date === today ? 'Сьогодні' : 'Завтра';
       items.push({
-        id: `soon-${e.id}-${e.date}`, at: Math.max(startToday, e.createdAt || 0), icon: '⏰',
+        id: `soon-${e.id}-${e.date}`, at: Math.max(startToday, e.createdAt || 0), icon: 'alarm',
         text: `${when}: ${e.title}${e.time ? ` о ${e.time}` : ''}`,
-        sub: [e.people ? `👥 ${e.people}` : '', proj.get(e.project)?.name].filter(Boolean).join(' · '), go,
+        sub: [e.people ? peopleText(e.people) : '', proj.get(e.project)?.name].filter(Boolean).join(' · '), go,
       });
     }
   }
@@ -39,12 +39,12 @@ export function buildItems({ uid, role, projects = [], events = [], users = [], 
   if (role !== 'manager') {
     for (const [pid, at] of Object.entries(joined)) {
       const p = proj.get(pid);
-      if (p) items.push({ id: `join-${pid}`, at, icon: '📁', text: `Тебе додали до проєкту «${p.name}»`, sub: 'Події проєкту — у Календарі', go: { tab: 'calendar', project: pid } });
+      if (p) items.push({ id: `join-${pid}`, at, icon: 'folder', text: `Тебе додали до проєкту «${p.name}»`, sub: 'Події проєкту — у Календарі', go: { tab: 'calendar', project: pid } });
     }
   } else {
     for (const u of users) {
       if (u.role === 'pending') {
-        items.push({ id: `pend-${u.id}`, at: u.createdAt || now, icon: '👤', text: `${u.name || 'Новий користувач'} чекає підтвердження`, sub: u.email || '', go: { tab: 'manager' } });
+        items.push({ id: `pend-${u.id}`, at: u.createdAt || now, icon: 'userPlus', text: `${u.name || 'Новий користувач'} чекає підтвердження`, sub: u.email || '', go: { tab: 'manager' } });
       }
     }
   }

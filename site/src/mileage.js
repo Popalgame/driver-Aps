@@ -1,6 +1,7 @@
 // Вкладка «Кілометраж»: показник одометра щоранку, заправки, підсумки місяця, історія, Excel.
 import * as cloud from './cloud.js';
 import { startOfDay, startOfMonth } from './time.js';
+import { iconText } from './icons.js';
 import { odoRows, summary, previousOdo, dayKey, drivenText } from './mileage-calc.js';
 
 const $ = (id) => document.getElementById(id);
@@ -93,7 +94,7 @@ function openEntry(e, type) {
   editing = e || null;
   const t = e?.type || type;
   $('kmDlg').dataset.type = t;
-  $('kmDlgTitle').textContent = t === 'fuel' ? (e ? '⛽ Заправка' : '⛽ Нова заправка') : (e ? '🚗 Кілометраж' : '🚗 Кілометраж за інший день');
+  iconText($('kmDlgTitle'), t === 'fuel' ? 'fuel' : 'gauge', t === 'fuel' ? (e ? 'Заправка' : 'Нова заправка') : (e ? 'Кілометраж' : 'Кілометраж за інший день'));
   const fuel = t === 'fuel';
   $('kmDate').type = fuel ? 'datetime-local' : 'date';
   $('kmDate').value = toLocalInput(e?.at ?? (fuel ? Date.now() : +startOfDay()), fuel);
@@ -254,13 +255,13 @@ function renderHistory() {
     const left = el('div');
     const right = el('div', 'd');
     if (e.type === 'odo') {
-      left.append(el('div', 't', `🚗 ${km(e.km)}`));
+      left.append(iconText(el('div', 't'), 'gauge', km(e.km)));
       if (e.note) left.append(el('div', 'n', e.note));
       const r = rowsById.get(e.id);
       right.textContent = r?.driven != null ? drivenText(r) : '';
       if (r?.driven == null) right.append(el('span', 'muted small-text', e.at === +startOfDay() ? 'сьогодні' : ''));
     } else {
-      left.append(el('div', 't', '⛽ ' + ([e.liters != null ? `${num2.format(e.liters)} л` : '', e.amount ? num2.format(e.amount) : ''].filter(Boolean).join(' · ') || 'Заправка')));
+      left.append(iconText(el('div', 't'), 'fuel', [e.liters != null ? `${num2.format(e.liters)} л` : '', e.amount ? num2.format(e.amount) : ''].filter(Boolean).join(' · ') || 'Заправка'));
       const meta = [timeFmt.format(e.at), e.km != null ? km(e.km) : '', e.amount && e.liters ? `${num2.format(e.amount / e.liters)} за л` : '', e.note].filter(Boolean).join(' · ');
       left.append(el('div', 'n', meta));
     }

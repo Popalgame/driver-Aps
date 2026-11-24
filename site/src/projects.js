@@ -5,6 +5,7 @@ import * as feed from './feed.js';
 import { dayKey } from './mileage-calc.js';
 import { COLORS, nextColor } from './calendar-calc.js';
 import { openAddDriver } from './manager.js';
+import { iconText } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -67,8 +68,8 @@ function render() {
     li.append(team);
     const ahead = events.filter((e) => e.project === p.id && e.date >= today).length;
     const foot = el('div', 'row proj-foot');
-    foot.append(el('span', 'badge', ahead ? `📅 Подій попереду: ${ahead}` : '📅 Подій попереду немає'));
-    const add = el('button', 'btn small', '＋ Водій');
+    foot.append(iconText(el('span', 'badge ih'), 'calendar', ahead ? `Подій попереду: ${ahead}` : 'Подій попереду немає'));
+    const add = iconText(el('button', 'btn small'), 'userPlus', 'Водій');
     add.type = 'button';
     add.title = 'Створити нового водія одразу в цьому проєкті';
     add.addEventListener('click', (ev) => {

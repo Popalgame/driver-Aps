@@ -26,12 +26,12 @@
   <aside id="sidebar" class="sidebar" aria-label="Меню">
     <div class="side-brand"><img src="icon.svg" alt="" width="44" height="44"><span>Driver-Aps</span></div>
     <nav class="side-nav">
-      <button type="button" data-tab="driver" class="on"><span class="ico">🕒</span>Мій час</button>
-      <button type="button" data-tab="mileage"><span class="ico">🚗</span>Кілометраж</button>
-      <button type="button" data-tab="calendar"><span class="ico">📅</span>Календар</button>
-      <button type="button" data-tab="manager" id="navManager" hidden><span class="ico">👥</span>Водії</button>
-      <button type="button" data-tab="projects" id="navProjects" hidden><span class="ico">📁</span>Проєкти</button>
-      <button type="button" data-tab="settings"><span class="ico">⚙️</span>Налаштування</button>
+      <button type="button" data-tab="driver" class="on"><span class="ico"><i data-i="clock"></i></span>Мій час</button>
+      <button type="button" data-tab="mileage"><span class="ico"><i data-i="car"></i></span>Кілометраж</button>
+      <button type="button" data-tab="calendar"><span class="ico"><i data-i="calendar"></i></span>Календар</button>
+      <button type="button" data-tab="manager" id="navManager" hidden><span class="ico"><i data-i="users"></i></span>Водії</button>
+      <button type="button" data-tab="projects" id="navProjects" hidden><span class="ico"><i data-i="folder"></i></span>Проєкти</button>
+      <button type="button" data-tab="settings"><span class="ico"><i data-i="sliders"></i></span>Налаштування</button>
     </nav>
     <div class="side-foot">
       <div class="side-user">
@@ -50,11 +50,11 @@
 
   <div class="page">
   <header class="top">
-    <button id="menuBtn" class="menu-btn" type="button" aria-label="Відкрити меню">☰</button>
+    <button id="menuBtn" class="menu-btn" type="button" aria-label="Відкрити меню"><i data-i="menu"></i></button>
     <h1 class="brand"><img src="icon.svg" alt="" width="44" height="44">Driver-Aps</h1>
     <h1 id="pageTitle" class="page-title"></h1>
     <button id="inboxBtn" class="inbox-btn" type="button" aria-label="Сповіщення" aria-haspopup="dialog" hidden>
-      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <i data-i="mail"></i>
       <span id="inboxBadge" class="inbox-badge" hidden></span>
     </button>
   </header>
@@ -77,7 +77,7 @@
     <div class="hero-name">Driver-Aps</div>
     <div class="hero-sub">Облік робочого часу водіїв</div>
   </div>
-  <button id="loginInstall" class="btn install-link" type="button" hidden>📲 Встановити апку на телефон</button>
+  <button id="loginInstall" class="btn install-link" type="button" hidden><i data-i="phone"></i> Встановити апку на телефон</button>
   <section id="authView" class="card" hidden>
     <h2 class="center">Вхід</h2>
     <form id="authForm" novalidate>
@@ -106,8 +106,8 @@
         <div class="status" id="status">Не на зміні</div>
         <div class="timer" id="timer">00:00:00</div>
         <div class="sub" id="sub">&nbsp;</div>
-        <button id="mainBtn" class="btn big start">▶ Почати роботу</button>
-        <button id="breakBtn" class="btn secondary" hidden>☕ Перерва</button>
+        <button id="mainBtn" class="btn big start"><i data-i="play"></i> Почати роботу</button>
+        <button id="breakBtn" class="btn secondary" hidden><i data-i="coffee"></i> Перерва</button>
       </section>
 
       <section class="stats">
@@ -119,7 +119,7 @@
       <section class="card history-card">
         <div class="row">
           <h2>Історія змін</h2>
-          <button id="exportBtn" class="btn small">⬇ Excel</button>
+          <button id="exportBtn" class="btn small"><i data-i="download"></i> Excel</button>
         </div>
         <ul id="history" class="history"></ul>
         <p id="empty" class="muted">Ще немає жодної зміни.</p>
@@ -140,10 +140,10 @@
         </div>
         <div class="row summary">
           <span id="mSummary" class="muted"></span>
-          <button id="mExportBtn" class="btn small">⬇ Excel</button>
+          <button id="mExportBtn" class="btn small"><i data-i="download"></i> Excel</button>
         </div>
       </section>
-      <button id="addDriverBtn" class="btn big start add" type="button">＋ Додати водія</button>
+      <button id="addDriverBtn" class="btn big start add" type="button"><i data-i="userPlus"></i> Додати водія</button>
       <section id="pendingBox" class="card pending" hidden>
         <h2>Очікують підтвердження</h2>
         <ul id="pendingList" class="history"></ul>
@@ -156,7 +156,7 @@
     <!-- Кілометраж і заправки -->
     <div id="mileageView" class="mileage" hidden>
       <section class="card odo-card">
-        <div class="row"><h2>🚗 Кілометраж зранку</h2><span id="odoDate" class="muted small-text"></span></div>
+        <div class="row"><h2 class="ih"><i data-i="gauge"></i> Кілометраж зранку</h2><span id="odoDate" class="muted small-text"></span></div>
         <form id="odoForm" class="odo-form" novalidate>
           <label class="odo-field">
             <input id="odoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="напр. 184520" aria-label="Кілометраж, км">
@@ -166,7 +166,7 @@
         </form>
         <p id="odoHint" class="muted small-text"></p>
         <p id="odoMsg" class="msg"></p>
-        <p id="odoDone" class="odo-done" hidden>✓ Сьогодні вже записано</p>
+        <p id="odoDone" class="odo-done" hidden><i data-i="checkCircle"></i> Сьогодні вже записано</p>
         <button id="odoOther" class="btn link" type="button">+ Запис за інший день</button>
       </section>
 
@@ -177,17 +177,17 @@
           <button id="kmNext" class="btn small" type="button" aria-label="Наступний місяць">›</button>
         </div>
         <div id="kmStats" class="stats km-stats"></div>
-        <button id="fuelAdd" class="btn secondary fuel-add" type="button">⛽ + Заправка</button>
+        <button id="fuelAdd" class="btn secondary fuel-add" type="button"><i data-i="fuel"></i> Заправка</button>
       </section>
 
       <section class="card km-hist">
         <div class="row">
           <h2 id="kmHistTitle">Історія</h2>
-          <button id="kmExport" class="btn small" type="button">⬇ Excel за місяць</button>
+          <button id="kmExport" class="btn small" type="button"><i data-i="download"></i> Excel за місяць</button>
         </div>
         <ul id="kmHistory" class="history"></ul>
         <p id="kmEmpty" class="muted">Немає записів.</p>
-        <button id="kmExportAll" class="btn link" type="button">⬇ Excel за весь час</button>
+        <button id="kmExportAll" class="btn link" type="button"><i data-i="download"></i> Excel за весь час</button>
       </section>
     </div>
 
@@ -208,7 +208,7 @@
       <section class="card cal-day">
         <div class="row">
           <h2 id="calDayTitle"></h2>
-          <button id="calAdd" class="btn small start" type="button">＋ Подія</button>
+          <button id="calAdd" class="btn small start" type="button"><i data-i="plus"></i> Подія</button>
         </div>
         <ul id="calDayList" class="cal-list"></ul>
         <p id="calDayEmpty" class="muted">Цього дня подій немає.</p>
@@ -224,9 +224,9 @@
 
     <!-- Проєкти (керівник): які водії працюють на якому проєкті -->
     <div id="projectsView" hidden>
-      <button id="projAdd" class="btn big start add" type="button">＋ Новий проєкт</button>
+      <button id="projAdd" class="btn big start add" type="button"><i data-i="plus"></i> Новий проєкт</button>
       <ul id="projList" class="drivers"></ul>
-      <p id="projEmpty" class="muted center" hidden>Ще немає жодного проєкту. Створи перший — наприклад, «Струмет», — і додай до нього водіїв.</p>
+      <p id="projEmpty" class="muted center empty" hidden><span class="empty-ico"><i data-i="folder"></i></span>Ще немає жодного проєкту. Створи перший — наприклад, «Струмет», — і додай до нього водіїв.</p>
       <p id="projErr" class="err center"></p>
     </div>
 
@@ -245,7 +245,7 @@
           <div id="pTimerSub" class="muted small-text"></div>
         </div>
         <div class="p-actions">
-          <button id="pCsv" class="btn small" type="button">⬇ Excel</button>
+          <button id="pCsv" class="btn small" type="button"><i data-i="download"></i> Excel</button>
           <button id="pAccess" class="btn small danger" type="button" hidden></button>
         </div>
       </section>
@@ -270,7 +270,7 @@
       </div>
 
       <section class="card p-km">
-        <div class="row"><h2>🚗 Кілометраж</h2><button id="pkExport" class="btn small" type="button">⬇ Excel за місяць</button></div>
+        <div class="row"><h2 class="ih"><i data-i="gauge"></i> Кілометраж</h2><button id="pkExport" class="btn small" type="button"><i data-i="download"></i> Excel за місяць</button></div>
         <div class="month-bar">
           <button id="pkPrev" class="btn small" type="button" aria-label="Попередній місяць">‹</button>
           <select id="pkMonthSel" aria-label="Місяць"></select>
@@ -285,7 +285,7 @@
         </div>
         <p id="pkEmpty" class="muted" hidden>Водій ще не вносив кілометраж.</p>
         <div id="pkFuelBox" hidden>
-          <h3 class="pk-sub">⛽ Заправки</h3>
+          <h3 class="pk-sub ih"><i data-i="fuel"></i> Заправки</h3>
           <ul id="pkFuel" class="history"></ul>
         </div>
       </section>
@@ -300,7 +300,7 @@
 
     <div id="settingsView" class="settings" hidden>
       <section class="card install-card">
-        <h2>📲 Встановити апку</h2>
+        <h2 class="ih"><i data-i="phone"></i> Встановити апку</h2>
         <div id="instTodo">
           <p class="muted small-text">Апка з'явиться на головному екрані з іконкою, відкриватиметься на весь екран і працюватиме без інтернету.</p>
           <div class="inst-btns">
@@ -308,7 +308,7 @@
             <button id="instHow" class="btn" type="button">Як встановити</button>
           </div>
         </div>
-        <p id="instDone" class="msg ok" hidden>✓ Апку встановлено на цей пристрій.</p>
+        <p id="instDone" class="msg ok" hidden><i data-i="checkCircle"></i> Апку встановлено на цей пристрій.</p>
       </section>
 
       <section class="card" id="sProfile">
@@ -438,10 +438,10 @@
       <div id="projColors" class="swatches"></div>
       <div class="row field-row">
         <div class="field-label">Водії на проєкті</div>
-        <button id="projNewDriver" class="btn small" type="button">＋ Новий водій</button>
+        <button id="projNewDriver" class="btn small" type="button"><i data-i="userPlus"></i> Новий водій</button>
       </div>
       <div id="projDrivers" class="checks"></div>
-      <p id="projNoDrivers" class="muted small-text" hidden>Ще немає водіїв — натисни «＋ Новий водій».</p>
+      <p id="projNoDrivers" class="muted small-text" hidden>Ще немає водіїв — натисни «Новий водій».</p>
       <p id="projDlgErr" class="err"></p>
       <div class="row">
         <button id="projDel" class="btn danger small" type="button">Видалити</button>
@@ -454,16 +454,16 @@
   </dialog>
 
   <dialog id="installDlg" class="install-dlg">
-    <h3>📲 Як встановити Driver-Aps</h3>
+    <h3 class="ih"><i data-i="phone"></i> Як встановити Driver-Aps</h3>
     <button id="dlgInstallBtn" class="btn big start" type="button" hidden>Встановити зараз</button>
 
     <details data-os="ios">
       <summary>iPhone / iPad</summary>
-      <p id="iosChromeNote" class="note" hidden>Ти в Chrome. Найпростіше — відкрий цю сторінку в <b>Safari</b>. У Chrome теж можна: кнопка «Поділитися» ⬆️ праворуч в адресному рядку → «На екран „Додому“».</p>
+      <p id="iosChromeNote" class="note" hidden>Ти в Chrome. Найпростіше — відкрий цю сторінку в <b>Safari</b>. У Chrome теж можна: кнопка «Поділитися» <span class="ico-share"><i data-i="share"></i></span> праворуч в адресному рядку → «На екран „Додому“».</p>
       <ol class="steps">
         <li>Відкрий <b>driver-aps.web.app</b> у <b>Safari</b>.</li>
-        <li>Натисни <b>«Поділитися»</b> <span class="ico-share" aria-hidden="true">⬆️</span> — квадрат зі стрілкою вгору внизу екрана.<br><small>У новому Safari спершу натисни <b>«•••»</b> внизу праворуч, потім «Поділитися».</small></li>
-        <li>Прокрути список униз і вибери <b>«На екран „Додому“»</b> <span aria-hidden="true">➕</span>.</li>
+        <li>Натисни <b>«Поділитися»</b> <span class="ico-share"><i data-i="share"></i></span> — квадрат зі стрілкою вгору внизу екрана.<br><small>У новому Safari спершу натисни <b>«•••»</b> внизу праворуч, потім «Поділитися».</small></li>
+        <li>Прокрути список униз і вибери <b>«На екран „Додому“»</b> <span class="ico-share"><i data-i="addSquare"></i></span>.</li>
         <li>Перевір, що увімкнено <b>«Відкрити як вебпрограму»</b> (якщо є), і натисни <b>«Додати»</b>.</li>
         <li>Готово: іконка <b>Driver-Aps</b> з'явиться на головному екрані. Відкривай апку з неї.</li>
       </ol>
@@ -503,10 +503,10 @@
       <div id="dFields">
         <label>Ім'я та прізвище <input id="dName" maxlength="60" autocomplete="off" required></label>
         <label>Email <input id="dEmail" type="email" autocomplete="off" required></label>
-        <label>Пароль <span class="pwrow"><input id="dPass" autocomplete="off" minlength="6" required><button id="dGen" class="btn small" type="button" title="Новий пароль">↻</button></span></label>
+        <label>Пароль <span class="pwrow"><input id="dPass" autocomplete="off" minlength="6" required><button id="dGen" class="btn small" type="button" title="Новий пароль" aria-label="Новий пароль"><i data-i="refresh"></i></button></span></label>
       </div>
       <div id="dDone" hidden>
-        <p>✅ Водія додано. Передай йому дані для входу:</p>
+        <p class="ih ok-line"><i data-i="checkCircle"></i> Водія додано. Передай йому дані для входу:</p>
         <pre id="dCreds" class="creds"></pre>
         <button id="dCopy" class="btn small" type="button">Скопіювати</button>
       </div>

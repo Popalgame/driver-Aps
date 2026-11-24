@@ -2,6 +2,7 @@
 // «тебе додали до проєкту», (керівнику) нові користувачі. Що прочитано — пам'ятає цей пристрій.
 import * as feed from './feed.js';
 import { buildItems, isUnread, trackJoins } from './inbox-calc.js';
+import { iconEl } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -73,7 +74,9 @@ function render() {
   $('inboxList').replaceChildren(...items.map((i) => {
     const li = el('li', 'inbox-item' + (isUnread(i, seen) ? ' unread' : ''));
     li.tabIndex = 0;
-    li.append(el('span', 'ii-ico', i.icon));
+    const ico = el('span', 'ii-ico ii-' + i.icon);
+    ico.append(iconEl(i.icon));
+    li.append(ico);
     const body = el('div', 'ii-body');
     body.append(el('div', 'ii-text', i.text));
     if (i.sub) body.append(el('div', 'ii-sub', i.sub));

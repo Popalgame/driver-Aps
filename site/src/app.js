@@ -10,6 +10,9 @@ import { startProjects, stopProjects } from './projects.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
 import { VERSION_LABEL } from './version.js';
+import { hydrateIcons, setIconText } from './icons.js';
+
+hydrateIcons();
 
 for (const el of document.querySelectorAll('[data-version]')) el.textContent = VERSION_LABEL;
 
@@ -183,7 +186,7 @@ function renderNow() {
     st.textContent = 'Не на зміні'; st.className = 'status';
     $('timer').textContent = '00:00:00';
     $('sub').innerHTML = '&nbsp;';
-    main.textContent = '▶ Почати роботу'; main.className = 'btn big start';
+    setIconText(main, 'play', 'Почати роботу'); main.className = 'btn big start';
     brk.hidden = true;
   } else {
     const paused = onBreak(s);
@@ -192,9 +195,9 @@ function renderNow() {
     $('timer').textContent = clock(workMs(s, now));
     const b = breakMs(s, now);
     $('sub').textContent = `Почато о ${timeFmt.format(s.start)}` + (b >= 60000 ? ` · перерви ${hm(b)}` : '');
-    main.textContent = '■ Закінчити роботу'; main.className = 'btn big stop';
+    setIconText(main, 'stop', 'Закінчити роботу'); main.className = 'btn big stop';
     brk.hidden = false;
-    brk.textContent = paused ? '▶ Продовжити' : '☕ Перерва';
+    if (paused) setIconText(brk, 'play', 'Продовжити'); else setIconText(brk, 'coffee', 'Перерва');
     brk.classList.toggle('active', paused);
   }
   $('sToday').textContent = hm(totalSince(shifts, startOfDay()));
