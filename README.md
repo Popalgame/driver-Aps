@@ -110,3 +110,13 @@ https://driver-aps.web.app. Для публікації в репозиторі�
 `FIREBASE_SERVICE_ACCOUNT` (Settings → Secrets and variables → Actions) —
 JSON-ключ сервісного акаунта з Firebase Console → Project settings → Service accounts.
 Без нього перевірки проходять, а публікація пропускається.
+
+## Версії
+
+Поточна версія — у `site/src/version.js` (зараз **0.0.1 альфа**). Її видно на екрані входу,
+у бічному меню та в «Налаштування → Про апку».
+
+При кожному оновленні піднімаємо номер (0.0.1 → 0.0.2 …) у трьох місцях:
+`site/src/version.js`, `package.json` (`0.0.2-alpha`) і `CACHE` у `site/sw.js` (`driver-aps-0.0.2`).
+`tests/version.test.mjs` перевіряє, що вони збігаються; нова назва кешу змушує телефони
+підхопити оновлення.

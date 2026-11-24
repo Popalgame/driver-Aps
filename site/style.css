@@ -301,3 +301,12 @@ body.auth .hero { margin-bottom: 16px; }
   background: var(--card); border: 1px solid var(--accent); border-radius: 14px;
   box-shadow: 0 10px 30px rgba(0,0,0,.45); white-space: nowrap;
 }
+
+/* ---------- Версія ---------- */
+.ver { font-size: 12px; margin: 10px 0 0; letter-spacing: .02em; }
+.side-foot .ver { text-align: center; }
+#loginVer { margin: 4px 0 8px; }
+.tag-alpha {
+  display: inline-block; vertical-align: middle; margin-left: 6px; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #451a03; background: var(--amber);
+}

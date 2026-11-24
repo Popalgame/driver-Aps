@@ -19,6 +19,7 @@
   <link rel="modulepreload" href="src/firebase-config.js">
   <link rel="modulepreload" href="vendor/firebase.js">
   <link rel="modulepreload" href="src/install.js">
+  <link rel="modulepreload" href="src/version.js">
 </head>
 <body>
   <!-- Бічне меню (після входу): на ПК постійне, на телефоні — висувне -->
@@ -39,6 +40,7 @@
       </div>
       <p id="sideEmail" class="muted side-email"></p>
       <button id="logoutBtn" class="btn secondary" type="button">Вийти</button>
+      <p class="ver muted">Версія <span data-version></span></p>
     </div>
   </aside>
   <div id="scrim" class="scrim"></div>
@@ -71,6 +73,7 @@
     <button id="resetBtn" class="btn link" type="button">Забули пароль?</button>
     <p class="muted center small-text">Немає облікового запису? Попроси керівника додати тебе.</p>
   </section>
+  <p id="loginVer" class="ver muted center" hidden>Версія <span data-version></span></p>
 
 
   <!-- Обліковий запис ще не підтверджено або доступ закрито -->
@@ -182,7 +185,8 @@
 
       <section class="card">
         <h2>Про апку</h2>
-        <p class="about">Driver-Aps · версія <span id="sVer"></span></p>
+        <p class="about">Driver-Aps · версія <span id="sVer"></span> <span class="tag-alpha">ALPHA</span></p>
+        <p class="muted small-text">Це рання (альфа) версія: апка активно розвивається, можливі зміни й недоліки. Повідомляй про помилки керівнику.</p>
         <p class="muted small-text">Облік робочого часу водіїв. Надішли це посилання водієві, щоб він відкрив апку:</p>
         <div class="row wrap"><code id="sAppUrl" class="url"></code><button id="sCopyUrl" class="btn small" type="button">Скопіювати посилання</button></div>
       </section>

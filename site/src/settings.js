@@ -1,7 +1,6 @@
 // Вкладка «Налаштування»: профіль, пароль, налаштування апки на цьому пристрої, про апку.
 import * as cloud from './cloud.js';
-
-export const APP_VERSION = '0.2.0';
+import { VERSION_LABEL } from './version.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
@@ -52,7 +51,7 @@ export function showSettings(p) {
   $('sPassForm').reset();
   $('pConfirm').checked = !!prefs.confirmEnd;
   $('pBig').checked = !!prefs.bigText;
-  $('sVer').textContent = APP_VERSION;
+  $('sVer').textContent = VERSION_LABEL;
   $('sAppUrl').textContent = APP_URL;
   $('sCopyUrl').textContent = 'Скопіювати посилання';
 }

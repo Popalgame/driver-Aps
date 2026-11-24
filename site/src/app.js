@@ -4,6 +4,9 @@ import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
+import { VERSION_LABEL } from './version.js';
+
+for (const el of document.querySelectorAll('[data-version]')) el.textContent = VERSION_LABEL;
 
 // Зміна: { id, start, end|null, breaks: [{start, end|null}], note }  (час у мс)
 // У хмарі ще: uid, driverName, updatedAt.
@@ -201,6 +204,7 @@ function show(view) {
   $('authView').hidden = view !== 'auth';
   $('authHero').hidden = view !== 'auth';
   $('loginInstall').hidden = view !== 'auth' || isInstalled();
+  $('loginVer').hidden = view !== 'auth';
   document.body.classList.toggle('auth', view === 'auth');
   $('waitView').hidden = view !== 'wait';
   $('mainView').hidden = view !== 'main';
