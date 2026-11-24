@@ -215,10 +215,22 @@ function renderHr() {
   }));
 }
 
+// Персонал: «Водії» або «Кадри» (вибір пам'ятає цей пристрій)
+const STAFF_KEY = 'driver-staff-tab';
+export function setStaff(s) {
+  $('managerView').dataset.staff = s;
+  for (const b of document.querySelectorAll('#staffSeg button')) b.classList.toggle('on', b.dataset.s === s);
+  try { localStorage.setItem(STAFF_KEY, s); } catch { /* немає доступу */ }
+}
+for (const b of document.querySelectorAll('#staffSeg button')) b.addEventListener('click', () => setStaff(b.dataset.s));
+try { if (localStorage.getItem(STAFF_KEY) === 'hr') setStaff('hr'); } catch { /* немає доступу */ }
+
 function render() {
   if (!running || !range) return;
   renderPending();
   renderHr();
+  $('cntDrivers').textContent = users.filter((u) => (u.role === 'driver' || u.role === 'disabled') && u.kind !== 'hr').length || '';
+  $('cntHr').textContent = users.filter((u) => u.kind === 'hr').length || '';
   const now = Date.now();
   const rows = summarizeByDriver(shifts, users, range[0], range[1], now);
   const list = $('drivers');
@@ -265,7 +277,7 @@ function render() {
         r.uid,
         (id) => users.find((u) => u.id === id) || { name: r.name, email: r.email, role: r.role },
         setRole,
-        () => { $('managerView').hidden = false; $('pageTitle').textContent = 'Водії'; render(); },
+        () => { $('managerView').hidden = false; $('pageTitle').textContent = 'Персонал'; render(); },
       );
     };
     li.addEventListener('click', openIt);

@@ -1,6 +1,6 @@
 import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import * as cloud from './cloud.js';
-import { startManager, stopManager } from './manager.js';
+import { startManager, stopManager, setStaff } from './manager.js';
 import { closeProfile } from './profile.js';
 import { startMileage, stopMileage } from './mileage.js';
 import { startCalendar, stopCalendar, showDate } from './calendar.js';
@@ -264,7 +264,7 @@ function show(view) {
 
 function setTab(tab) {
   for (const b of document.querySelectorAll('.side-nav button')) b.classList.toggle('on', b.dataset.tab === tab);
-  $('pageTitle').textContent = { manager: 'Водії', settings: 'Налаштування', mileage: 'Кілометраж', calendar: 'Календар', projects: 'Проєкти' }[tab] || 'Мій час';
+  $('pageTitle').textContent = { manager: 'Персонал', settings: 'Налаштування', mileage: 'Кілометраж', calendar: 'Календар', projects: 'Проєкти' }[tab] || 'Мій час';
   closeMenu();
   closeProfile();
   $('driverView').hidden = tab !== 'driver';
@@ -439,6 +439,7 @@ onProfileName((p) => { fillUser(p); setUserName(p.name); });
 // Сповіщення: натиснув — перейти до події в календарі / до списку водіїв
 initInbox((go) => {
   setTab(go.tab);
+  if (go.tab === 'manager') setStaff('drivers'); // нові користувачі — у «Водіях»
   if (go.tab === 'calendar') showDate(go.date || dayKeyNow(), go.project);
 });
 const dayKeyNow = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };

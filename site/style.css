@@ -220,8 +220,11 @@ body.app-on .sidebar { display: flex; }
   #managerView:not([hidden]) {
     display: grid; gap: 0 20px; align-items: start;
     grid-template-columns: 1fr minmax(260px, 340px);
-    grid-template-areas: "period add" "pending pending" "list list" "empty empty" "err err";
+    grid-template-areas: "staff staff" "period add" "pending pending" "list list" "empty empty" "hradd hradd" "hr hr" "err err";
   }
+  #managerView .staff-seg { grid-area: staff; }
+  #managerView #addHrBtn { grid-area: hradd; }
+  #managerView #hrBox { grid-area: hr; }
   #managerView .period-card { grid-area: period; }
   #managerView #addDriverBtn { grid-area: add; align-self: stretch; margin-bottom: 16px; }
   #managerView #pendingBox { grid-area: pending; }
@@ -741,3 +744,12 @@ html.big-text .task-st { font-size: 15px; }
 .task-done { margin-top: 10px; }
 .task-done summary { cursor: pointer; color: #86efac; font-weight: 600; font-size: 14px; padding: 6px 0; }
 .task-when { color: #86efac; }
+
+/* Персонал: Водії / Кадри */
+.staff-seg { margin-bottom: 16px; }
+.staff-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; padding: 12px 8px; }
+.staff-seg .cnt:not(:empty) { min-width: 22px; padding: 1px 7px; border-radius: 999px; background: rgba(255,255,255,.14); font-size: 13px; }
+.staff-seg button:not(.on) .cnt:not(:empty) { background: var(--line); }
+#managerView[data-staff="hr"] .st-drv, #managerView[data-staff="drivers"] .st-hr { display: none !important; }
+.hr-box { margin-top: 0; }
+html.big-text .staff-seg button { font-size: 18px; }

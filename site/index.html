@@ -29,7 +29,7 @@
       <button type="button" data-tab="driver" class="on"><span class="ico"><i data-i="clock"></i></span>Мій час</button>
       <button type="button" data-tab="mileage"><span class="ico"><i data-i="car"></i></span>Кілометраж</button>
       <button type="button" data-tab="calendar"><span class="ico"><i data-i="calendar"></i></span>Календар</button>
-      <button type="button" data-tab="manager" id="navManager" hidden><span class="ico"><i data-i="users"></i></span>Водії</button>
+      <button type="button" data-tab="manager" id="navManager" hidden><span class="ico"><i data-i="users"></i></span>Персонал</button>
       <button type="button" data-tab="projects" id="navProjects" hidden><span class="ico"><i data-i="folder"></i></span>Проєкти</button>
       <button type="button" data-tab="settings"><span class="ico"><i data-i="sliders"></i></span>Налаштування</button>
     </nav>
@@ -138,8 +138,13 @@
       </section>
     </div>
 
-    <div id="managerView" hidden>
-      <section class="card period-card">
+    <div id="managerView" data-staff="drivers" hidden>
+      <!-- Персонал: перемикач «Водії / Кадри» -->
+      <div class="seg staff-seg" id="staffSeg">
+        <button type="button" data-s="drivers" class="on"><i data-i="users"></i> Водії <span id="cntDrivers" class="cnt"></span></button>
+        <button type="button" data-s="hr"><i data-i="idcard"></i> Кадри <span id="cntHr" class="cnt"></span></button>
+      </div>
+      <section class="card period-card st-drv">
         <div class="seg small" id="period">
           <button type="button" data-p="day" class="on">Сьогодні</button>
           <button type="button" data-p="week">Тиждень</button>
@@ -155,18 +160,15 @@
           <button id="mExportBtn" class="btn small"><i data-i="download"></i> Excel</button>
         </div>
       </section>
-      <button id="addDriverBtn" class="btn big start add" type="button"><i data-i="userPlus"></i> Додати водія</button>
-      <section id="pendingBox" class="card pending" hidden>
+      <button id="addDriverBtn" class="btn big start add st-drv" type="button"><i data-i="userPlus"></i> Додати водія</button>
+      <section id="pendingBox" class="card pending st-drv" hidden>
         <h2>Очікують підтвердження</h2>
         <ul id="pendingList" class="history"></ul>
       </section>
-      <ul id="drivers" class="drivers"></ul>
-      <p id="mEmpty" class="muted center" hidden>Ще немає жодного водія. Натисни «Додати водія».</p>
-      <section id="hrBox" class="card hr-box">
-        <div class="row">
-          <h2 class="ih"><i data-i="idcard"></i> Кадри</h2>
-          <button id="addHrBtn" class="btn small" type="button"><i data-i="plus"></i> Кадровик</button>
-        </div>
+      <ul id="drivers" class="drivers st-drv"></ul>
+      <p id="mEmpty" class="muted center st-drv" hidden>Ще немає жодного водія. Натисни «Додати водія».</p>
+      <button id="addHrBtn" class="btn big start add st-hr" type="button"><i data-i="userPlus"></i> Додати кадровика</button>
+      <section id="hrBox" class="card hr-box st-hr">
         <p class="muted small-text hr-note">Бачать лише календар і імена людей своїх проєктів — без годин і кілометражу. Додати до проєкту — у вкладці «Проєкти».</p>
         <ul id="hrList" class="hr-list"></ul>
         <p id="hrEmpty" class="muted small-text">Ще немає кадровиків.</p>
