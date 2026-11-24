@@ -101,6 +101,9 @@ export function authError(e) {
     'auth/too-many-requests': 'Забагато спроб. Спробуй трохи пізніше.',
     'auth/network-request-failed': 'Немає інтернету. Для входу потрібне з\'єднання.',
     'auth/popup-closed-by-user': 'Вхід скасовано.',
+    'auth/configuration-not-found': 'Вхід ще не увімкнено: Firebase Console → Authentication → Get started.',
+    'auth/operation-not-allowed': 'Цей спосіб входу вимкнено: Firebase Console → Authentication → Sign-in method.',
+    'auth/unauthorized-domain': 'Цей домен не дозволено: Authentication → Settings → Authorized domains.',
   };
   return map[e?.code] || 'Помилка: ' + (e?.message || e);
 }
