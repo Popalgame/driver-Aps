@@ -195,6 +195,8 @@ function setShifts(list) {
 function show(view) {
   $('loading').hidden = view !== 'loading';
   $('authView').hidden = view !== 'auth';
+  $('authHero').hidden = view !== 'auth';
+  document.body.classList.toggle('auth', view === 'auth');
   $('waitView').hidden = view !== 'wait';
   $('mainView').hidden = view !== 'main';
 }

@@ -126,3 +126,10 @@ dialog input {
 
 #authView label.check { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 15px; cursor: pointer; margin: 4px 0 8px; }
 #authView label.check input { width: 22px; height: 22px; margin: 0; padding: 0; accent-color: var(--accent); flex: none; }
+
+/* Екран входу: великий логотип */
+.hero { text-align: center; margin: 32px 0 20px; }
+.hero img { width: 132px; height: 132px; border-radius: 30px; box-shadow: 0 12px 36px rgba(59,130,246,.35); }
+.hero-name { font-size: 30px; font-weight: 800; margin-top: 14px; letter-spacing: .01em; }
+.hero-sub { color: var(--muted); font-size: 15px; margin-top: 2px; }
+body.auth .top { display: none; }
