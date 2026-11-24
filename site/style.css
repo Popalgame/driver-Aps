@@ -16,9 +16,8 @@ body {
   color: var(--text);
   font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
-  max-width: 560px;
-  margin: 0 auto;
 }
+.page { max-width: 560px; margin: 0 auto; }
 .top h1 { font-size: 20px; margin: 16px 0; }
 h2 { font-size: 17px; margin: 0; }
 h3 { margin: 0 0 12px; }
@@ -83,7 +82,6 @@ dialog input {
 }
 .seg button.on { background: var(--accent); color: #fff; }
 .seg.small button { font-size: 14px; padding: 8px 4px; }
-#tabs { background: var(--card); }
 
 #authView label, .range label { display: block; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
 #authView input, .range input {
@@ -133,3 +131,59 @@ dialog input {
 .hero-name { font-size: 30px; font-weight: 800; margin-top: 14px; letter-spacing: .01em; }
 .hero-sub { color: var(--muted); font-size: 15px; margin-top: 2px; }
 body.auth .top { display: none; }
+
+/* ---------- Бічне меню ---------- */
+.sidebar {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 20; width: 264px;
+  display: none; flex-direction: column; gap: 8px;
+  padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #0f2657 0%, #0a1a40 100%);
+  border-right: 1px solid var(--line);
+}
+body.app-on .sidebar { display: flex; }
+.side-brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 22px; padding: 4px 8px 20px; }
+.side-brand img { width: 44px; height: 44px; border-radius: 11px; }
+.side-nav { display: flex; flex-direction: column; gap: 4px; }
+.side-nav button {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  border: 0; border-radius: 12px; padding: 12px 14px; font: inherit; font-weight: 600;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.side-nav button:hover { background: rgba(59,130,246,.12); color: var(--text); }
+.side-nav button.on { background: var(--accent); color: #fff; }
+.side-nav .ico { width: 22px; text-align: center; }
+.side-foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 16px; }
+.side-user { display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--accent); color: #fff; font-weight: 800;
+}
+.side-who { display: flex; flex-direction: column; min-width: 0; }
+.side-who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-who span { font-size: 13px; }
+.side-email { font-size: 13px; margin: 8px 0 10px; overflow-wrap: anywhere; }
+.side-foot .btn { width: 100%; margin-top: 0; }
+
+.menu-btn {
+  display: none; border: 0; background: var(--card); color: var(--text); font-size: 22px;
+  width: 44px; height: 44px; border-radius: 12px; cursor: pointer; flex: none;
+}
+.top { justify-content: flex-start; gap: 12px; }
+.page-title { display: none; }
+.scrim { display: none; }
+
+/* Телефон / вузький екран: висувне меню */
+@media (max-width: 899px) {
+  body.app-on .menu-btn { display: grid; place-items: center; }
+  .sidebar { transform: translateX(-100%); transition: transform .22s ease; box-shadow: 8px 0 32px rgba(0,0,0,.4); }
+  body.menu-open .sidebar { transform: none; }
+  body.menu-open .scrim { display: block; position: fixed; inset: 0; z-index: 15; background: rgba(2,8,28,.6); }
+}
+
+/* ПК: постійна панель зліва */
+@media (min-width: 900px) {
+  body.app-on { padding-left: calc(264px + 24px); padding-right: 24px; }
+  body.app-on .top .brand { display: none; }
+  body.app-on .page-title { display: block; font-size: 24px; margin: 24px 0 16px; }
+  body.app-on .page { max-width: 640px; }
+}

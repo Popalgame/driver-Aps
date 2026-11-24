@@ -193,6 +193,8 @@ function setShifts(list) {
 
 // ---------- Екрани ----------
 function show(view) {
+  document.body.classList.toggle('app-on', view === 'main');
+  if (view !== 'main') closeMenu();
   $('loading').hidden = view !== 'loading';
   $('authView').hidden = view !== 'auth';
   $('authHero').hidden = view !== 'auth';
@@ -202,13 +204,30 @@ function show(view) {
 }
 
 function setTab(tab) {
-  for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('on', b.dataset.tab === tab);
+  for (const b of document.querySelectorAll('.side-nav button')) b.classList.toggle('on', b.dataset.tab === tab);
+  $('pageTitle').textContent = tab === 'manager' ? 'Водії' : 'Мій час';
+  closeMenu();
   $('driverView').hidden = tab !== 'driver';
   $('managerView').hidden = tab !== 'manager';
   if (tab === 'manager') startManager(profile);
   else stopManager();
 }
-for (const b of document.querySelectorAll('#tabs button')) b.addEventListener('click', () => setTab(b.dataset.tab));
+for (const b of document.querySelectorAll('.side-nav button')) b.addEventListener('click', () => setTab(b.dataset.tab));
+
+// ---------- Бічне меню (телефон) ----------
+function closeMenu() { document.body.classList.remove('menu-open'); }
+$('menuBtn').addEventListener('click', () => document.body.classList.add('menu-open'));
+$('scrim').addEventListener('click', closeMenu);
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+
+const ROLE_NAMES = { manager: 'Керівник', driver: 'Водій' };
+function fillUser(p) {
+  $('userName').textContent = p ? p.name : 'Цей пристрій';
+  $('sideRole').textContent = p ? (ROLE_NAMES[p.role] || '') : 'Без входу';
+  $('sideEmail').textContent = p?.email || '';
+  $('sideAvatar').textContent = (p?.name || '•').trim().charAt(0).toUpperCase();
+  $('logoutBtn').hidden = !p;
+}
 
 function updateModeNote() {
   if (!profile) {
@@ -282,13 +301,11 @@ function onProfile(p) {
   if (!p) {
     store = null;
     shifts = [];
-    $('userChip').hidden = true;
     $('aErr').textContent = '';
     show('auth');
     return;
   }
-  $('userName').textContent = p.name;
-  $('userChip').hidden = false;
+  fillUser(p);
   if (p.role !== 'driver' && p.role !== 'manager') {
     // Обліковий запис ще не підтверджено керівником або доступ закрито
     store = null;
@@ -303,7 +320,7 @@ function onProfile(p) {
     return;
   }
   store = cloudStore(p, setShifts);
-  $('tabs').hidden = p.role !== 'manager';
+  $('navManager').hidden = p.role !== 'manager';
   setTab('driver');
   show('main');
   updateModeNote();
@@ -315,6 +332,8 @@ function onProfile(p) {
 async function boot() {
   if (!cloud.cloudEnabled) {
     store = localStore(setShifts);
+    fillUser(null);
+    setTab('driver');
     show('main');
     updateModeNote();
     return;
@@ -327,6 +346,8 @@ async function boot() {
     // SDK не завантажився (напр., перший запуск без інтернету) — працюємо локально
     console.error(e);
     store = localStore(setShifts);
+    fillUser(null);
+    setTab('driver');
     show('main');
     $('modeNote').textContent = '⚠ Не вдалося підключитися до хмари — дані зберігаються на цьому пристрої.';
   }

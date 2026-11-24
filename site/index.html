@@ -12,12 +12,32 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <h1 class="brand"><img src="icon.svg" alt="" width="44" height="44">Driver-Aps</h1>
-    <div id="userChip" class="user" hidden>
-      <span id="userName"></span>
-      <button id="logoutBtn" class="btn small">Вийти</button>
+  <!-- Бічне меню (після входу): на ПК постійне, на телефоні — висувне -->
+  <aside id="sidebar" class="sidebar" aria-label="Меню">
+    <div class="side-brand"><img src="icon.svg" alt="" width="44" height="44"><span>Driver-Aps</span></div>
+    <nav class="side-nav">
+      <button type="button" data-tab="driver" class="on"><span class="ico">🕒</span>Мій час</button>
+      <button type="button" data-tab="manager" id="navManager" hidden><span class="ico">👥</span>Водії</button>
+    </nav>
+    <div class="side-foot">
+      <div class="side-user">
+        <div class="avatar" id="sideAvatar"></div>
+        <div class="side-who">
+          <b id="userName"></b>
+          <span id="sideRole" class="muted"></span>
+        </div>
+      </div>
+      <p id="sideEmail" class="muted side-email"></p>
+      <button id="logoutBtn" class="btn secondary" type="button">Вийти</button>
     </div>
+  </aside>
+  <div id="scrim" class="scrim"></div>
+
+  <div class="page">
+  <header class="top">
+    <button id="menuBtn" class="menu-btn" type="button" aria-label="Відкрити меню">☰</button>
+    <h1 class="brand"><img src="icon.svg" alt="" width="44" height="44">Driver-Aps</h1>
+    <h1 id="pageTitle" class="page-title"></h1>
   </header>
 
   <p id="loading" class="muted center">Завантаження…</p>
@@ -49,11 +69,6 @@
   </section>
 
   <main id="mainView" hidden>
-    <nav id="tabs" class="seg" hidden>
-      <button type="button" data-tab="driver" class="on">Мій час</button>
-      <button type="button" data-tab="manager">Водії</button>
-    </nav>
-
     <div id="driverView">
       <section class="card now" aria-live="polite">
         <div class="status" id="status">Не на зміні</div>
@@ -108,6 +123,7 @@
 
     <p id="modeNote" class="muted center small-text"></p>
   </main>
+  </div>
 
   <dialog id="editDlg">
     <form method="dialog" id="editForm">
