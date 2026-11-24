@@ -1,6 +1,6 @@
-// Сторінка водія для керівника: статус наживо, підсумки за періоди, графік тижня, уся історія, CSV.
+// Сторінка водія для керівника: статус наживо, підсумки за періоди, графік тижня, уся історія, Excel.
 import { breakMs, workMs, clock, hm, startOfDay, startOfWeek } from './time.js';
-import { driverStats, weekByDay, shiftsToCsv, downloadCsv } from './report.js';
+import { driverStats, weekByDay } from './report.js';
 import * as cloud from './cloud.js';
 
 const $ = (id) => document.getElementById(id);
@@ -15,14 +15,6 @@ const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const hShort = (ms) => { const m = Math.round(ms / 60000); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
 
 const HISTORY_STEP = 30;
-
-// Назва файлу латиницею: кирилиця в імені завантаження ламається в деяких браузерах
-const TR = { а:'a',б:'b',в:'v',г:'h',ґ:'g',д:'d',е:'e',є:'ie',ж:'zh',з:'z',и:'y',і:'i',ї:'i',й:'i',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ь:'',ю:'iu',я:'ia',ё:'e',ы:'y',э:'e',ъ:'' };
-const latin = (t) => [...t].map((ch) => {
-  const lo = ch.toLowerCase(), r = TR[lo];
-  if (r === undefined) return ch;
-  return ch === lo ? r : r.charAt(0).toUpperCase() + r.slice(1);
-}).join('');
 
 let uid = null;
 let shifts = [];
@@ -71,11 +63,9 @@ $('pBack').addEventListener('click', () => { closeProfile(); onBack(); });
 $('pPrev').addEventListener('click', () => { weekOffset -= 1; renderWeek(); });
 $('pNext').addEventListener('click', () => { if (weekOffset < 0) { weekOffset += 1; renderWeek(); } });
 $('pMore').addEventListener('click', () => { shown += 1000; renderHistory(); });
-$('pCsv').addEventListener('click', () => {
-  const u = user();
-  const base = latin(u.name || 'vodii').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'vodii';
-  const file = `${base}-${new Date().toISOString().slice(0, 10)}.csv`;
-  downloadCsv(shiftsToCsv(shifts, new Map([[uid, u.name]])), file);
+$('pCsv').addEventListener('click', async () => {
+  const { exportDriver } = await import('./export.js');
+  exportDriver(shifts, user().name);
 });
 $('pAccess').addEventListener('click', () => {
   const u = user();

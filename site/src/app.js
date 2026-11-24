@@ -1,5 +1,4 @@
 import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
-import { shiftsToCsv, downloadCsv } from './report.js';
 import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
 import { closeProfile } from './profile.js';
@@ -129,8 +128,9 @@ $('breakBtn').addEventListener('click', () => {
   store.put(s);
 });
 
-$('exportBtn').addEventListener('click', () => {
-  downloadCsv(shiftsToCsv(shifts), `zminy-${new Date().toISOString().slice(0, 10)}.csv`);
+$('exportBtn').addEventListener('click', async () => {
+  const { exportMine } = await import('./export.js');
+  exportMine(shifts, profile?.name);
 });
 
 // ---------- Редагування ----------

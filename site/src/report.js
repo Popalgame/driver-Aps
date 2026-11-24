@@ -1,4 +1,4 @@
-// Звіти для керівника і CSV — чиста логіка без DOM (tests/report.test.mjs).
+// Звіти для керівника — чиста логіка без DOM (tests/report.test.mjs). Excel — у export.js.
 import { breakMs, workMs, workInRange, startOfDay, startOfWeek, startOfMonth } from './time.js';
 
 // Підсумок по водіях за період [from, to).
@@ -40,37 +40,6 @@ export function summarizeByDriver(shifts, users, from, to, now = Date.now()) {
   }
   const off = (r) => (r.role === 'disabled' ? 1 : 0);
   return list.sort((a, b) => (off(a) - off(b)) || (!!b.active - !!a.active) || (b.total - a.total) || a.name.localeCompare(b.name, 'uk'));
-}
-
-const timeFmt = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
-
-// Рядки CSV для завершених змін. names — Map uid → ім'я (необов'язково).
-export function shiftsToCsv(shifts, names) {
-  const head = ['Дата', 'Початок', 'Кінець', 'Перерви (хв)', 'Робочий час (год)', 'Нотатка'];
-  if (names) head.unshift('Водій');
-  const rows = [head];
-  for (const s of [...shifts].sort((a, b) => a.start - b.start)) {
-    if (s.end == null) continue;
-    const r = [
-      new Date(s.start).toLocaleDateString('uk-UA'),
-      timeFmt.format(s.start),
-      timeFmt.format(s.end),
-      Math.round(breakMs(s) / 60000),
-      (workMs(s) / 3600000).toFixed(2).replace('.', ','),
-      s.note || '',
-    ];
-    if (names) r.unshift(names.get(s.uid) || s.driverName || '');
-    rows.push(r);
-  }
-  // ; і BOM — щоб Excel з українською локаллю відкрив коректно
-  return '﻿' + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\r\n');
-}
-
-export function downloadCsv(csv, name) {
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: name });
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ---------- Сторінка водія ----------

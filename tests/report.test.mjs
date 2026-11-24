@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { summarizeByDriver, shiftsToCsv } from '../site/src/report.js';
+import { summarizeByDriver } from '../site/src/report.js';
 
 const H = 3600e3;
 const users = [
@@ -38,14 +38,6 @@ test('зміни поза періодом не рахуються', () => {
   assert.equal(rows.find((r) => r.uid === 'b').count, 0);
 });
 
-test('CSV: лише завершені зміни, з іменем водія', () => {
-  const csv = shiftsToCsv(shifts, new Map([['a', 'Андрій'], ['b', 'Богдан']]));
-  const lines = csv.replace('﻿', '').split('\r\n');
-  assert.equal(lines.length, 1 + 3);
-  assert.match(lines[0], /^"Водій";"Дата"/);
-  assert.match(lines[1], /^"Андрій";/);
-  assert.match(lines[1], /"7,00";""$/);
-});
 
 import { driverStats, weekByDay } from '../site/src/report.js';
 

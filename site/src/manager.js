@@ -1,7 +1,7 @@
-// Панель керівника: усі водії, хто зараз у дорозі, підсумки за період, CSV,
+// Панель керівника: усі водії, хто зараз у дорозі, підсумки за період, Excel,
 // додавання водіїв, підтвердження й закриття доступу.
-import { workInRange, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
-import { summarizeByDriver, shiftsToCsv, downloadCsv } from './report.js';
+import { hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
+import { summarizeByDriver } from './report.js';
 import * as cloud from './cloud.js';
 import { openProfile, refreshProfile } from './profile.js';
 
@@ -75,11 +75,13 @@ for (const b of document.querySelectorAll('#period button')) {
 }
 for (const id of ['pFrom', 'pTo']) $(id).addEventListener('change', () => { if (running) subscribe(); });
 
-$('mExportBtn').addEventListener('click', () => {
+$('mExportBtn').addEventListener('click', async () => {
   if (!range) return;
-  const inRange = shifts.filter((s) => workInRange(s, range[0], range[1]) > 0);
-  const names = new Map(users.map((u) => [u.id, u.name]));
-  downloadCsv(shiftsToCsv(inRange, names), `vodii-${isoDay(range[0])}_${isoDay(range[1] - 1)}.csv`);
+  const { exportTeam } = await import('./export.js');
+  const label = period === 'custom'
+    ? `${dateLong.format(range[0])} – ${dateLong.format(range[1] - 1)}`
+    : { day: 'сьогодні', week: 'цей тиждень', month: 'цей місяць' }[period];
+  exportTeam(shifts, users, range[0], range[1], label);
 });
 
 // ---------- Додати водія ----------
