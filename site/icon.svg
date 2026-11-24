@@ -10,6 +10,7 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(256 256) scale(1.25) translate(-256 -256)">
   <!-- кермо -->
   <circle cx="256" cy="256" r="160" fill="none" stroke="url(#rim)" stroke-width="44"/>
   <!-- спиці: ліва, права, нижня -->
@@ -20,4 +21,5 @@
   <!-- стрілки годинника -->
   <path d="M256 270 V222 M256 270 L290 290" stroke="#eef3ff" stroke-width="16" stroke-linecap="round" fill="none"/>
   <circle cx="256" cy="270" r="11" fill="#2dd4bf"/>
+  </g>
 </svg>

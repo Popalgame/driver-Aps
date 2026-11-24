@@ -1,4 +1,4 @@
-const CACHE = 'driver-time-v8';
+const CACHE = 'driver-time-v9';
 const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'src/report.js', 'src/cloud.js', 'src/manager.js', 'src/firebase-config.js',
   'vendor/firebase.js', 'manifest.webmanifest', 'icon.svg',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];

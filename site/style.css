@@ -122,7 +122,7 @@ dialog input {
 #waitView .btn { margin-top: 8px; }
 
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand img { width: 36px; height: 36px; border-radius: 9px; flex: none; }
+.brand img { width: 44px; height: 44px; border-radius: 11px; flex: none; }
 
 #authView label.check { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 15px; cursor: pointer; margin: 4px 0 8px; }
 #authView label.check input { width: 22px; height: 22px; margin: 0; padding: 0; accent-color: var(--accent); flex: none; }
