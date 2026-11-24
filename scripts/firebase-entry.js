@@ -4,7 +4,7 @@ export { initializeApp, deleteApp } from 'firebase/app';
 export {
   getAuth, initializeAuth, inMemoryPersistence, browserLocalPersistence, browserSessionPersistence, setPersistence, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   signOut, updateProfile,
-  sendPasswordResetEmail, connectAuthEmulator,
+  sendPasswordResetEmail, connectAuthEmulator, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
 } from 'firebase/auth';
 export {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator,

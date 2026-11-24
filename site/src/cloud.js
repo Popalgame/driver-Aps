@@ -86,6 +86,17 @@ export async function signIn(email, password, remember = true) {
   return fb.signInWithEmailAndPassword(auth, email, password);
 }
 export const resetPassword = (email) => fb.sendPasswordResetEmail(auth, email);
+
+// ---------- Налаштування профілю ----------
+export const updateMyName = (uid, name) => fb.updateDoc(fb.doc(db, 'users', uid), { name });
+
+// Firebase вимагає недавнього входу — спершу перевіряємо поточний пароль
+export async function changePassword(current, next) {
+  const u = auth.currentUser;
+  if (!u) throw new Error('Не виконано вхід');
+  await fb.reauthenticateWithCredential(u, fb.EmailAuthProvider.credential(u.email, current));
+  await fb.updatePassword(u, next);
+}
 export const logout = () => fb.signOut(auth);
 
 // ---------- Керівник: водії ----------

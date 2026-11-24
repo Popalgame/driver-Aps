@@ -21,6 +21,7 @@
     <nav class="side-nav">
       <button type="button" data-tab="driver" class="on"><span class="ico">🕒</span>Мій час</button>
       <button type="button" data-tab="manager" id="navManager" hidden><span class="ico">👥</span>Водії</button>
+      <button type="button" data-tab="settings"><span class="ico">⚙️</span>Налаштування</button>
     </nav>
     <div class="side-foot">
       <div class="side-user">
@@ -122,6 +123,49 @@
       <ul id="drivers" class="drivers"></ul>
       <p id="mEmpty" class="muted center" hidden>Ще немає жодного водія. Натисни «Додати водія».</p>
       <p id="mErr" class="err center"></p>
+    </div>
+
+    <div id="settingsView" class="settings" hidden>
+      <section class="card" id="sProfile">
+        <h2>Профіль</h2>
+        <form id="sNameForm" class="sform">
+          <label>Ім'я та прізвище <input id="sName" maxlength="60" autocomplete="name"></label>
+          <p class="muted small-text"><span id="sEmail"></span> · <span id="sRole"></span></p>
+          <p id="sNameMsg" class="msg"></p>
+          <button class="btn start" type="submit">Зберегти ім'я</button>
+        </form>
+      </section>
+
+      <section class="card" id="sSecurity">
+        <h2>Змінити пароль</h2>
+        <form id="sPassForm" class="sform" novalidate>
+          <input id="sUser" type="email" autocomplete="username" hidden>
+          <label>Поточний пароль <input id="sCur" type="password" autocomplete="current-password"></label>
+          <label>Новий пароль <input id="sNew" type="password" autocomplete="new-password"></label>
+          <label>Повторити новий пароль <input id="sNew2" type="password" autocomplete="new-password"></label>
+          <p id="sPassMsg" class="msg"></p>
+          <button class="btn start" type="submit">Змінити пароль</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Апка на цьому пристрої</h2>
+        <label class="toggle">
+          <span><b>Підтвердження перед «Закінчити роботу»</b><small>Захист від випадкового натискання</small></span>
+          <input type="checkbox" id="pConfirm">
+        </label>
+        <label class="toggle">
+          <span><b>Великий текст</b><small>Зручніше читати в дорозі</small></span>
+          <input type="checkbox" id="pBig">
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Про апку</h2>
+        <p class="about">Driver-Aps · версія <span id="sVer"></span></p>
+        <p class="muted small-text">Облік робочого часу водіїв. Надішли це посилання водієві, щоб він відкрив апку:</p>
+        <div class="row wrap"><code id="sAppUrl" class="url"></code><button id="sCopyUrl" class="btn small" type="button">Скопіювати посилання</button></div>
+      </section>
     </div>
 
     <p id="modeNote" class="muted center small-text"></p>

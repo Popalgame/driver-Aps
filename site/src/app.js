@@ -2,6 +2,7 @@ import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startO
 import { shiftsToCsv, downloadCsv } from './report.js';
 import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
+import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 
 // Зміна: { id, start, end|null, breaks: [{start, end|null}], note }  (час у мс)
 // У хмарі ще: uid, driverName, updatedAt.
@@ -63,7 +64,7 @@ $('mainBtn').addEventListener('click', () => {
   const cur = active();
   const now = Date.now();
   if (cur) {
-    if (!confirm('Закінчити роботу?')) return;
+    if (prefs.confirmEnd && !confirm('Закінчити роботу?')) return;
     const s = copy(cur);
     s.breaks.forEach((b) => { if (b.end == null) b.end = now; });
     s.end = now;
@@ -205,10 +206,12 @@ function show(view) {
 
 function setTab(tab) {
   for (const b of document.querySelectorAll('.side-nav button')) b.classList.toggle('on', b.dataset.tab === tab);
-  $('pageTitle').textContent = tab === 'manager' ? 'Водії' : 'Мій час';
+  $('pageTitle').textContent = { manager: 'Водії', settings: 'Налаштування' }[tab] || 'Мій час';
   closeMenu();
   $('driverView').hidden = tab !== 'driver';
   $('managerView').hidden = tab !== 'manager';
+  $('settingsView').hidden = tab !== 'settings';
+  if (tab === 'settings') showSettings(profile);
   if (tab === 'manager') startManager(profile);
   else stopManager();
 }
@@ -329,7 +332,11 @@ function onProfile(p) {
 }
 
 // ---------- Старт ----------
+// Ім'я змінено в налаштуваннях: оновити меню; нові зміни підписуються новим ім'ям
+onProfileName((p) => fillUser(p));
+
 async function boot() {
+  applyPrefs();
   if (!cloud.cloudEnabled) {
     store = localStore(setShifts);
     fillUser(null);
