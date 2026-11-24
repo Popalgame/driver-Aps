@@ -182,13 +182,13 @@ function renderWeek() {
   const total = days.reduce((a, d) => a + d.ms, 0);
   $('pWeekTotal').textContent = `Разом за тиждень: ${hm(total)} · ${shortDate.format(start)} – ${longDate.format(end)}`;
 
-  // Шкала: цілі години, щонайменше 8
-  const maxH = Math.max(8, Math.ceil(Math.max(...days.map((d) => d.ms)) / 3600e3));
+  // Шкала: повна доба — 24 години
+  const maxH = 24;
   const chart = $('pChart');
   chart.replaceChildren();
   chart.setAttribute('aria-label', 'Години по днях: ' + days.map((d) => `${wdShort.format(d.start)} ${hm(d.ms)}`).join(', '));
   const grid = el('div', 'c-grid');
-  for (const h of [maxH, Math.round(maxH / 2), 0]) {
+  for (const h of [24, 18, 12, 6, 0]) {
     const line = el('div', 'c-line');
     line.append(el('span', 'c-y', `${h} год`));
     grid.append(line);
