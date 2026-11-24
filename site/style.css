@@ -597,3 +597,52 @@ html.big-text .cal-d .n { font-size: 17px; }
 html.big-text .chip, html.big-text .ev-meta, html.big-text .ev-date, html.big-text .cal-team { font-size: 15px; }
 html.big-text .ev-what { font-size: 18px; }
 html.big-text .ev-note, html.big-text .field-label, html.big-text .checks label.check { font-size: 16px; }
+
+/* ---------- Сповіщення (конвертик) ---------- */
+.inbox-btn {
+  position: relative; margin-left: auto; flex: none; display: grid; place-items: center;
+  width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--card); color: var(--text); cursor: pointer;
+}
+.inbox-btn[hidden] { display: none; }
+.inbox-btn.has { color: #fff; }
+.inbox-badge {
+  position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  background: var(--red); color: #fff; font-size: 12px; font-weight: 800; line-height: 20px; text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.inbox-badge[hidden] { display: none; }
+.inbox-panel {
+  position: fixed; z-index: 30; top: calc(env(safe-area-inset-top) + 68px); right: max(16px, env(safe-area-inset-right));
+  width: min(400px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px;
+  box-shadow: 0 18px 48px rgba(0,0,0,.5);
+}
+.inbox-panel[hidden] { display: none; }
+.inbox-head { margin-bottom: 6px; }
+.inbox-list { list-style: none; margin: 0; padding: 0; }
+.inbox-item { display: flex; gap: 10px; padding: 10px 8px; margin: 0 -8px; border-radius: 10px; cursor: pointer; }
+.inbox-item + .inbox-item { border-top: 1px solid var(--line); }
+.inbox-item:hover { background: rgba(59,130,246,.08); }
+.inbox-item.unread { background: rgba(59,130,246,.14); }
+.inbox-item.unread .ii-text { font-weight: 700; }
+.ii-ico { font-size: 20px; line-height: 1.2; flex: none; }
+.ii-body { min-width: 0; }
+.ii-text { font-size: 15px; overflow-wrap: anywhere; }
+.ii-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.ii-when { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.inbox-panel .center { margin: 12px 0; }
+@media (min-width: 900px) {
+  body.app-on .top { align-items: center; }
+  .inbox-panel { top: 92px; right: max(32px, env(safe-area-inset-right)); }
+}
+html.big-text .ii-text { font-size: 17px; }
+html.big-text .ii-sub, html.big-text .ii-when { font-size: 15px; }
+
+/* Проєкти: водії «чипами», кнопка «＋ Водій» */
+.proj-team { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.pchip { padding: 4px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 14px; }
+.pchip.off { opacity: .55; text-decoration: line-through; }
+.proj-foot { gap: 8px; }
+.field-row { margin: 4px 0 4px; }
+.field-row .field-label { margin: 0; }
+html.big-text .pchip { font-size: 16px; }

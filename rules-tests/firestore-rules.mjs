@@ -201,6 +201,8 @@ test('календар: події бачать і змінюють лише у�
   await assertFails(getDocs(collection(b, 'events')));
   // будь-хто з проєкту редагує й видаляє
   await assertSucceeds(updateDoc(doc(b, 'events/e1'), { people: 7, updatedAt: 2 }));
+  await assertSucceeds(updateDoc(doc(b, 'events/e1'), { people: 6, editedBy: 'bob', editedByName: 'Боб', updatedAt: 3 }));
+  await assertFails(updateDoc(doc(b, 'events/e1'), { editedBy: 'alice', editedByName: 'Аліса' }));
   await assertFails(updateDoc(doc(b, 'events/e1'), { project: 'mlesna' }));
   await assertFails(updateDoc(doc(b, 'events/e1'), { by: 'bob' }));
   await assertSucceeds(setDoc(doc(b, 'events/e3'), event('strumet', 'bob')));

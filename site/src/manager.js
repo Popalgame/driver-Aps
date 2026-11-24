@@ -102,7 +102,12 @@ function genPassword() {
   return Array.from(rnd, (n) => abc[n % abc.length]).join('');
 }
 
-function openAddDriver() {
+let onDriverCreated = null;
+
+// onCreated(uid, name) — напр., щоб одразу додати нового водія до проєкту
+export function openAddDriver(onCreated = null, title = 'Новий водій') {
+  onDriverCreated = onCreated;
+  $('dTitle').textContent = title;
   $('driverForm').reset();
   $('dPass').value = genPassword();
   $('dFields').hidden = false;
@@ -114,7 +119,7 @@ function openAddDriver() {
   $('dName').focus();
 }
 
-$('addDriverBtn').addEventListener('click', openAddDriver);
+$('addDriverBtn').addEventListener('click', () => openAddDriver());
 $('dGen').addEventListener('click', () => { $('dPass').value = genPassword(); });
 $('dCancel').addEventListener('click', () => $('driverDlg').close());
 $('dCopy').addEventListener('click', async () => {
@@ -137,7 +142,8 @@ $('driverForm').addEventListener('submit', async (e) => {
   $('dSubmit').disabled = true;
   $('dErr').textContent = 'Додаю…';
   try {
-    await cloud.createDriver(name, email, pass);
+    const uid = await cloud.createDriver(name, email, pass);
+    onDriverCreated?.(uid, name);
     $('dErr').textContent = '';
     $('dCreds').textContent = `Driver-Aps\n${APP_URL}\nEmail: ${email}\nПароль: ${pass}`;
     $('dCopy').textContent = 'Скопіювати';

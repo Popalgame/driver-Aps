@@ -1,6 +1,7 @@
 // Вкладка «Календар»: події проєктів (медкомісія, інструктаж, перевезення…).
 // Водій бачить і додає події лише своїх проєктів; керівник — усіх.
 import * as cloud from './cloud.js';
+import * as feed from './feed.js';
 import { startOfMonth } from './time.js';
 import { dayKey } from './mileage-calc.js';
 import { COLORS, monthGrid, eventsByDate, upcoming, keyToDate, peopleText } from './calendar-calc.js';
@@ -19,7 +20,7 @@ let events = [];
 let month = startOfMonth();
 let selected = dayKey(Date.now());
 let filter = '';      // '' — усі проєкти
-let stopProjects = null, stopEvents = null, eventsFor = '';
+let unsub = null;
 let editing = null;
 
 const isManager = () => user?.role === 'manager';
@@ -37,31 +38,32 @@ function showError(e) {
 }
 
 // ---------- Відкрити / закрити вкладку ----------
-export function startCalendar(profile) {
-  stopCalendar();
-  user = profile ? { uid: profile.uid, name: profile.name, role: profile.role } : null;
-  projects = []; events = [];
-  if (!user) { render(); return; }
-  stopProjects = cloud.watchProjects(user.uid, isManager(), (list) => {
-    projects = list.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+// Дані — зі спільної підписки (feed.js): проєкти й події вже завантажені для сповіщень
+export function startCalendar() {
+  unsub?.();
+  unsub = feed.subscribe((st) => {
+    user = st.user;
+    projects = st.projects;
+    events = st.events;
     if (filter && !projById(filter)) filter = '';
-    // Водій: підписка на події лише своїх проєктів (перепідписка, коли склад змінився)
-    const key = isManager() ? '*' : projects.map((p) => p.id).sort().join(',');
-    if (key !== eventsFor) {
-      stopEvents?.();
-      eventsFor = key;
-      stopEvents = cloud.watchEvents(projects.map((p) => p.id), isManager(), (list) => { events = list; render(); }, showError);
-    }
+    if ($('calendarView').hidden) return;
     render();
-  }, showError);
+    if (st.error) showError(st.error);
+  });
   render();
 }
 
 export function stopCalendar() {
-  stopProjects?.(); stopEvents?.();
-  stopProjects = stopEvents = null;
-  eventsFor = '';
+  unsub?.(); unsub = null;
   $('evDlg').open && $('evDlg').close();
+}
+
+// Відкрити конкретний день (зі сповіщення)
+export function showDate(key, projectId) {
+  selected = key;
+  month = startOfMonth(keyToDate(key));
+  if (projectId && projects.length > 1) filter = projectId;
+  render();
 }
 
 // ---------- Відображення ----------
@@ -194,7 +196,7 @@ function openEvent(e) {
   $('evWhat').value = e?.title || '';
   $('evPeople').value = e?.people ?? '';
   $('evNote').value = e?.note || '';
-  $('evBy').textContent = e?.byName ? `Додав(ла): ${e.byName}` : '';
+  $('evBy').textContent = [e?.byName && `Додав(ла): ${e.byName}`, e?.editedByName && `змінив(ла): ${e.editedByName}`].filter(Boolean).join(' · ');
   $('evDel').hidden = !e;
   $('evErr').textContent = '';
   $('evDlg').showModal();
@@ -236,10 +238,12 @@ $('evForm').addEventListener('submit', (ev) => {
     byName: editing?.byName || user.name || '',
     createdAt: editing?.createdAt || now,
   };
+  if (editing) Object.assign(e, { editedBy: user.uid, editedByName: user.name || '' });
   if (editing && editing.project !== project) {
     // Проєкт змінено: нова подія в іншому проєкті, стару видаляємо
     cloud.removeEvent(editing.id).catch(showError);
     Object.assign(e, { id: newId(), by: user.uid, byName: user.name || '', createdAt: now });
+    delete e.editedBy; delete e.editedByName;
   }
   events = events.filter((x) => x.id !== e.id && x.id !== editing?.id).concat({ ...e, updatedAt: now });
   selected = date;

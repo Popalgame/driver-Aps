@@ -53,7 +53,21 @@
     <button id="menuBtn" class="menu-btn" type="button" aria-label="Відкрити меню">☰</button>
     <h1 class="brand"><img src="icon.svg" alt="" width="44" height="44">Driver-Aps</h1>
     <h1 id="pageTitle" class="page-title"></h1>
+    <button id="inboxBtn" class="inbox-btn" type="button" aria-label="Сповіщення" aria-haspopup="dialog" hidden>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="inboxBadge" class="inbox-badge" hidden></span>
+    </button>
   </header>
+
+  <!-- Сповіщення (конвертик угорі праворуч) -->
+  <div id="inboxPanel" class="inbox-panel" role="dialog" aria-label="Сповіщення" hidden>
+    <div class="row inbox-head">
+      <h2>Сповіщення</h2>
+      <button id="inboxReadAll" class="btn small" type="button">Прочитати всі</button>
+    </div>
+    <ul id="inboxList" class="inbox-list"></ul>
+    <p id="inboxEmpty" class="muted center">Сповіщень немає.</p>
+  </div>
 
   <p id="loading" class="muted center">Завантаження…</p>
 
@@ -422,8 +436,12 @@
       <label>Назва <input id="projName" type="text" maxlength="40" placeholder="напр. Струмет" autocomplete="off"></label>
       <div class="field-label">Колір</div>
       <div id="projColors" class="swatches"></div>
-      <div class="field-label">Водії на проєкті</div>
+      <div class="row field-row">
+        <div class="field-label">Водії на проєкті</div>
+        <button id="projNewDriver" class="btn small" type="button">＋ Новий водій</button>
+      </div>
       <div id="projDrivers" class="checks"></div>
+      <p id="projNoDrivers" class="muted small-text" hidden>Ще немає водіїв — натисни «＋ Новий водій».</p>
       <p id="projDlgErr" class="err"></p>
       <div class="row">
         <button id="projDel" class="btn danger small" type="button">Видалити</button>
@@ -481,7 +499,7 @@
 
   <dialog id="driverDlg">
     <form id="driverForm" novalidate>
-      <h3>Новий водій</h3>
+      <h3 id="dTitle">Новий водій</h3>
       <div id="dFields">
         <label>Ім'я та прізвище <input id="dName" maxlength="60" autocomplete="off" required></label>
         <label>Email <input id="dEmail" type="email" autocomplete="off" required></label>

@@ -3,7 +3,9 @@ import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
 import { closeProfile } from './profile.js';
 import { startMileage, stopMileage } from './mileage.js';
-import { startCalendar, stopCalendar } from './calendar.js';
+import { startCalendar, stopCalendar, showDate } from './calendar.js';
+import { startFeed, stopFeed, setUserName } from './feed.js';
+import { initInbox, startInbox, stopInbox } from './inbox.js';
 import { startProjects, stopProjects } from './projects.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
@@ -380,7 +382,7 @@ function onProfile(p) {
 
   const pending = sameUser ? (store?.queued || []) : [];
   store?.stop();
-  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); }
+  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); stopInbox(); stopFeed(); }
   profile = p;
   if (!p) {
     store = null;
@@ -407,6 +409,7 @@ function onProfile(p) {
   for (const [op, arg] of pending) store[op](arg); // натискання, зроблені під час запуску
   $('navManager').hidden = p.role !== 'manager';
   $('navProjects').hidden = p.role !== 'manager';
+  if (!sameUser) { startFeed(p); startInbox(p); }
   if (!sameUser) setTab('driver');
   show('main');
   updateModeNote();
@@ -416,7 +419,14 @@ function onProfile(p) {
 
 // ---------- Старт ----------
 // Ім'я змінено в налаштуваннях: оновити меню; нові зміни підписуються новим ім'ям
-onProfileName((p) => fillUser(p));
+onProfileName((p) => { fillUser(p); setUserName(p.name); });
+
+// Сповіщення: натиснув — перейти до події в календарі / до списку водіїв
+initInbox((go) => {
+  setTab(go.tab);
+  if (go.tab === 'calendar') showDate(go.date || dayKeyNow(), go.project);
+});
+const dayKeyNow = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 async function boot() {
   applyPrefs();
@@ -436,6 +446,8 @@ async function boot() {
     store = queuedStore();
     $('navManager').hidden = cached.role !== 'manager';
     $('navProjects').hidden = cached.role !== 'manager';
+    startFeed(cached);
+    startInbox(cached);
     setTab('driver');
     show('main');
     setShifts(loadCachedShifts(cached.uid));
