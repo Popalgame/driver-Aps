@@ -174,8 +174,9 @@ export function watchAllShifts(from, to, cb, onError) {
   return fb.onSnapshot(q, (snap) => cb(snap.docs.map(fromDoc)), onError);
 }
 
+// Можна викликати ще до завантаження Firebase (швидкий старт) — підпишеться, коли буде готово
 export function watchUsers(cb, onError) {
-  return fb.onSnapshot(fb.collection(db, 'users'), (snap) => cb(snap.docs.map(fromDoc)), onError);
+  return watchWhenReady(() => fb.onSnapshot(fb.collection(db, 'users'), (snap) => cb(snap.docs.map(fromDoc)), onError));
 }
 
 // Запис не чекаємо: без інтернету проміс завершиться лише після синхронізації,
