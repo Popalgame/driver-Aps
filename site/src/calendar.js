@@ -284,7 +284,7 @@ $('evForm').addEventListener('submit', (ev) => {
   };
   // Стан завдання не змінюється при редагуванні тексту
   for (const k of ['status', 'driver', 'driverName', 'takenAt', 'startedAt', 'doneAt']) if (editing && k in editing) e[k] = editing[k];
-  if (!editing || !('status' in editing)) Object.assign(e, { status: 'open', driver: null });
+  // Нова подія: статус «вільне» за замовчуванням (поля status/driver не потрібні)
   if (editing) Object.assign(e, { editedBy: user.uid, editedByName: user.name || '', editedAt: now });
   if (editing && editing.project !== project) {
     // Проєкт змінено: нова подія в іншому проєкті, стару видаляємо

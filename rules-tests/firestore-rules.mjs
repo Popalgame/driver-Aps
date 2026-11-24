@@ -308,3 +308,13 @@ test('завдання: бере лише вільне, кроки — лише 
   // водій не з проєкту — нічого
   await assertFails(updateDoc(doc(as('carl'), 'events/t1'), take('carl', 'Карл')));
 });
+
+test('старі події (без полів завдання) водій може редагувати й брати', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'projects/strumet'), project(['alice', 'bob']));
+    await setDoc(doc(ctx.firestore(), 'events/old'), event('strumet', 'bob'));
+  });
+  const a = as('alice');
+  await assertSucceeds(setDoc(doc(a, 'events/old'), { ...event('strumet', 'bob'), need: true, note: 'нове', editedBy: 'alice', editedByName: 'Аліса', editedAt: 5, updatedAt: 5 }));
+  await assertSucceeds(updateDoc(doc(a, 'events/old'), { status: 'taken', driver: 'alice', driverName: 'Аліса', takenAt: 6, updatedAt: 6 }));
+});
