@@ -3,6 +3,7 @@
 import * as cloud from './cloud.js';
 import * as feed from './feed.js';
 import { iconText } from './icons.js';
+import { STATUS, statusOf, statusText, actions } from './tasks.js';
 import { startOfMonth } from './time.js';
 import { dayKey } from './mileage-calc.js';
 import { COLORS, monthGrid, eventsByDate, upcoming, keyToDate, peopleText } from './calendar-calc.js';
@@ -159,10 +160,42 @@ function item(e, withDate) {
   if (e.people) iconText(m, 'users', meta.filter(Boolean).join(' · '));
   li.append(m);
   if (e.note) li.append(el('div', 'ev-note', e.note));
+  const tb = taskBar(e, user, render);
+  if (tb) li.append(tb);
   const open = () => openEvent(e);
   li.addEventListener('click', open);
   li.addEventListener('keydown', (k) => { if (k.key === 'Enter') open(); });
   return li;
+}
+
+// Статус завдання і кнопки водія («Беру» → «Забрав людей» → «Виконано»)
+// me = { uid, name, role }; after() — перемалювати після натискання
+export function taskBar(e, me, after) {
+  const s = statusOf(e);
+  if (!s) return null;
+  const bar = el('div', 'task-bar');
+  bar.append(iconText(el('span', 'task-st ' + STATUS[s].cls), STATUS[s].icon, statusText(e)));
+  const { main, undo } = actions(e, me?.uid, me?.name || '', me?.role);
+  const run = (a) => (ev) => {
+    ev.stopPropagation();
+    if (a.ask && !confirm(a.ask)) return;
+    Object.assign(e, a.patch);          // одразу на екрані; база підтвердить у фоні
+    after?.();
+    cloud.patchEvent(e.id, a.patch).catch((err) => { console.error(err); alert('Не вдалося зберегти: ' + (err?.message || err)); });
+  };
+  if (main) {
+    const b = iconText(el('button', 'btn small start task-go'), main.icon, main.label);
+    b.type = 'button';
+    b.addEventListener('click', run(main));
+    bar.append(b);
+  }
+  if (undo) {
+    const u = el('button', 'btn link task-undo', undo.label);
+    u.type = 'button';
+    u.addEventListener('click', run(undo));
+    bar.append(u);
+  }
+  return bar;
 }
 
 function renderDay() {
@@ -204,6 +237,8 @@ function openEvent(e) {
   $('evWhat').value = e?.title || '';
   $('evPeople').value = e?.people ?? '';
   $('evNote').value = e?.note || '';
+  $('evNeed').checked = e ? !!e.need : true;
+  $('evNeed').disabled = !!(e && statusOf(e) && statusOf(e) !== 'open'); // взяте завдання не перетворити на подію
   $('evBy').textContent = [e?.byName && `Додав(ла): ${e.byName}`, e?.editedByName && `змінив(ла): ${e.editedByName}`].filter(Boolean).join(' · ');
   $('evDel').hidden = !e;
   $('evErr').textContent = '';
@@ -245,13 +280,17 @@ $('evForm').addEventListener('submit', (ev) => {
     by: editing?.by || user.uid,
     byName: editing?.byName || user.name || '',
     createdAt: editing?.createdAt || now,
+    need: $('evNeed').checked,
   };
-  if (editing) Object.assign(e, { editedBy: user.uid, editedByName: user.name || '' });
+  // Стан завдання не змінюється при редагуванні тексту
+  for (const k of ['status', 'driver', 'driverName', 'takenAt', 'startedAt', 'doneAt']) if (editing && k in editing) e[k] = editing[k];
+  if (!editing || !('status' in editing)) Object.assign(e, { status: 'open', driver: null });
+  if (editing) Object.assign(e, { editedBy: user.uid, editedByName: user.name || '', editedAt: now });
   if (editing && editing.project !== project) {
     // Проєкт змінено: нова подія в іншому проєкті, стару видаляємо
     cloud.removeEvent(editing.id).catch(showError);
-    Object.assign(e, { id: newId(), by: user.uid, byName: user.name || '', createdAt: now });
-    delete e.editedBy; delete e.editedByName;
+    Object.assign(e, { id: newId(), by: user.uid, byName: user.name || '', createdAt: now, status: 'open', driver: null, driverName: '', takenAt: null, startedAt: null, doneAt: null });
+    delete e.editedBy; delete e.editedByName; delete e.editedAt;
   }
   events = events.filter((x) => x.id !== e.id && x.id !== editing?.id).concat({ ...e, updatedAt: now });
   selected = date;

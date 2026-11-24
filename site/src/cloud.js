@@ -282,6 +282,12 @@ export async function putEvent(e) {
   return fb.setDoc(fb.doc(db, 'events', id), { ...data, updatedAt: Date.now() });
 }
 
+// Часткова зміна події (кроки завдання: беру / в дорозі / виконано) — не чіпає решту полів
+export async function patchEvent(id, patch) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'events', id), { ...patch, updatedAt: Date.now() });
+}
+
 export async function removeEvent(id) {
   await ready;
   return fb.deleteDoc(fb.doc(db, 'events', id));

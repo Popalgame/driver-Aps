@@ -21,10 +21,26 @@ export function buildItems({ uid, role, projects = [], events = [], users = [], 
     if (!proj.has(e.project)) continue;
     const go = { tab: 'calendar', date: e.date, project: e.project };
     if (e.by !== uid && e.createdAt >= since) {
-      items.push({ id: `new-${e.id}`, at: e.createdAt, icon: 'calendar', text: `${e.byName || 'Хтось'} додав(ла) подію «${e.title}»`, sub: evSub(e), go });
+      // Водію — «потрібен водій», якщо завдання ще вільне
+      const ask = e.need && role === 'driver' && (e.status || 'open') === 'open';
+      items.push({
+        id: `new-${e.id}`, at: e.createdAt, icon: ask ? 'alarm' : 'calendar',
+        text: ask ? `Потрібен водій: «${e.title}»` : `${e.byName || 'Хтось'} додав(ла) ${e.need ? 'завдання' : 'подію'} «${e.title}»`,
+        sub: evSub(e) + (ask && e.byName ? ` · від ${e.byName}` : ''), go,
+      });
     }
-    if (e.editedBy && e.editedBy !== uid && e.updatedAt >= since && e.updatedAt - e.createdAt > 2000) {
-      items.push({ id: `edit-${e.id}-${e.updatedAt}`, at: e.updatedAt, icon: 'pencil', text: `${e.editedByName || 'Хтось'} змінив(ла) подію «${e.title}»`, sub: evSub(e), go });
+    const editedAt = e.editedAt || e.updatedAt;
+    if (e.editedBy && e.editedBy !== uid && editedAt >= since && editedAt - e.createdAt > 2000) {
+      items.push({ id: `edit-${e.id}-${editedAt}`, at: editedAt, icon: 'pencil', text: `${e.editedByName || 'Хтось'} змінив(ла) подію «${e.title}»`, sub: evSub(e), go });
+    }
+    // Кроки завдання — усім у проєкті, крім самого водія
+    if (e.need && e.driver && e.driver !== uid) {
+      if (e.takenAt >= since && (e.status === 'taken' || e.status === 'onway' || e.status === 'done')) {
+        items.push({ id: `take-${e.id}-${e.takenAt}`, at: e.takenAt, icon: 'userCheck', text: `${e.driverName || 'Водій'} взяв(ла) завдання «${e.title}»`, sub: evSub(e), go });
+      }
+      if (e.status === 'done' && e.doneAt >= since) {
+        items.push({ id: `done-${e.id}-${e.doneAt}`, at: e.doneAt, icon: 'checkCircle', text: `${e.driverName || 'Водій'} виконав(ла) «${e.title}»`, sub: evSub(e), go });
+      }
     }
     if (e.date === today || e.date === tomorrow) {
       const when = e.date === today ? 'Сьогодні' : 'Завтра';

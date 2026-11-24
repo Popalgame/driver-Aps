@@ -3,6 +3,9 @@ import { breakMs, workMs, clock, hm, startOfDay, startOfWeek, startOfMonth } fro
 import { driverStats, weekByDay } from './report.js';
 import * as cloud from './cloud.js';
 import { iconText } from './icons.js';
+import * as feed from './feed.js';
+import { STATUS, statusText } from './tasks.js';
+import { keyToDate, COLORS, peopleText } from './calendar-calc.js';
 import { odoRows, summary, drivenText } from './mileage-calc.js';
 
 const $ = (id) => document.getElementById(id);
@@ -30,6 +33,7 @@ let shown = HISTORY_STEP;
 let getUser = () => null;
 let setRole = () => {};
 let onBack = () => {};
+let unsubFeed = null;
 
 export const isOpen = () => uid !== null;
 
@@ -54,9 +58,11 @@ export function openProfile(id, userGetter, roleSetter, back) {
     $('pMeta').textContent = '⚠ Не вдалося завантажити зміни: ' + (e?.message || e);
   });
   tick = setInterval(renderLive, 1000);
+  unsubFeed = feed.subscribe(renderTasks);
 }
 
 export function closeProfile() {
+  unsubFeed?.(); unsubFeed = null;
   stopWatch?.();
   stopWatch = null;
   stopKm?.();
@@ -267,6 +273,38 @@ const monthFmt = new Intl.DateTimeFormat('uk-UA', { month: 'long', year: 'numeri
 const rowDay = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
 const addMonths = (d, n) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; };
 const kmRange = () => [+kmMonth, +addMonths(kmMonth, 1)];
+
+// Завдання водія: що зараз у роботі і що виконав (останні 20); підсумок за місяць
+const tDate = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
+const tDone = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function renderTasks(st) {
+  if (!uid) return;
+  const mine = st.events.filter((e) => e.need && e.driver === uid);
+  $('pTasks').hidden = !mine.length;
+  if (!mine.length) return;
+  const month = +startOfMonth();
+  const doneMonth = mine.filter((e) => e.status === 'done' && e.doneAt >= month).length;
+  const doneAll = mine.filter((e) => e.status === 'done').length;
+  $('pTasksSum').textContent = `виконано цього місяця: ${doneMonth} · усього: ${doneAll}`;
+  const order = { onway: 0, taken: 1, done: 2 };
+  const list = mine.sort((a, b) => (order[a.status] - order[b.status]) || (b.date + (b.time || '')).localeCompare(a.date + (a.time || ''))).slice(0, 20);
+  $('pTasksList').replaceChildren(...list.map((e) => {
+    const p = st.projects.find((x) => x.id === e.project);
+    const li = el('li', 'cal-ev');
+    li.style.setProperty('--c', COLORS[p?.color ?? 0]);
+    const top = el('div', 'ev-top');
+    top.append(el('span', 'ev-date', tDate.format(keyToDate(e.date))));
+    if (e.time) top.append(el('span', 'ev-time', e.time));
+    top.append(el('b', 'ev-what', e.title));
+    li.append(top);
+    li.append(el('div', 'ev-meta', [e.people ? peopleText(e.people) : '', p?.name, e.byName ? 'від ' + e.byName : ''].filter(Boolean).join(' · ')));
+    const bar = el('div', 'task-bar');
+    const s = e.status || 'open';
+    bar.append(iconText(el('span', 'task-st ' + STATUS[s].cls), STATUS[s].icon, s === 'done' ? `Виконано ${tDone.format(e.doneAt)}` : statusText(e).split(':')[0]));
+    li.append(bar);
+    return li;
+  }));
+}
 
 function setKmMonth(d) {
   const cur = startOfMonth();

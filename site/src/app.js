@@ -6,6 +6,7 @@ import { startMileage, stopMileage } from './mileage.js';
 import { startCalendar, stopCalendar, showDate } from './calendar.js';
 import { startFeed, stopFeed, setUserName } from './feed.js';
 import { initInbox, startInbox, stopInbox } from './inbox.js';
+import { startMyTasks, stopMyTasks } from './mytasks.js';
 import { startProjects, stopProjects } from './projects.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
@@ -397,7 +398,7 @@ function onProfile(p) {
 
   const pending = sameUser ? (store?.queued || []) : [];
   store?.stop();
-  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); stopInbox(); stopFeed(); }
+  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); stopInbox(); stopMyTasks(); stopFeed(); }
   profile = p;
   if (!p) {
     store = null;
@@ -423,7 +424,7 @@ function onProfile(p) {
   store = cloudStore(p, cachingSetShifts(p.uid));
   for (const [op, arg] of pending) store[op](arg); // натискання, зроблені під час запуску
   roleNav(p.role);
-  if (!sameUser) { startFeed(p); startInbox(p); }
+  if (!sameUser) { startFeed(p); startInbox(p); startMyTasks(); }
   if (!sameUser) setTab(homeTab(p.role));
   show('main');
   updateModeNote();
@@ -461,6 +462,7 @@ async function boot() {
     roleNav(cached.role);
     startFeed(cached);
     startInbox(cached);
+    startMyTasks();
     setTab(homeTab(cached.role));
     show('main');
     setShifts(loadCachedShifts(cached.uid));

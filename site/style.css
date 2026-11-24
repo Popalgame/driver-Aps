@@ -210,8 +210,9 @@ body.app-on .sidebar { display: flex; }
   #driverView:not([hidden]) {
     display: grid; gap: 0 20px; align-items: start;
     grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.3fr);
-    grid-template-areas: "now hist" "stats hist" ". hist";
+    grid-template-areas: "now hist" "stats hist" "tasks hist" ". hist";
   }
+  #driverView .task-card { grid-area: tasks; }
   #driverView .now { grid-area: now; padding: 32px 24px; }
   #driverView .stats { grid-area: stats; }
   #driverView .history-card { grid-area: hist; }
@@ -715,3 +716,28 @@ svg.i .f { fill: currentColor; stroke: none; }
 .hr-list .pend.off .dname { opacity: .6; }
 .hr-list .badge { margin-top: 4px; }
 .field-row .btn { white-space: nowrap; flex: none; }
+
+.ii-userCheck { --t1: #60a5fa; --t2: #2563eb; }
+.ii-checkCircle { --t1: #4ade80; --t2: #16a34a; }
+
+/* ---------- Завдання ---------- */
+.task-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.task-st { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+.task-st svg.i { width: 15px; height: 15px; vertical-align: 0; }
+.task-st.open { background: rgba(245,158,11,.16); color: #fbbf24; }
+.task-st.taken { background: rgba(59,130,246,.18); color: #93c5fd; }
+.task-st.onway { background: rgba(45,212,191,.16); color: #5eead4; }
+.task-st.done { background: rgba(74,222,128,.16); color: #86efac; }
+.task-go { flex: 1 1 100%; padding: 12px; font-size: 16px; }
+.task-undo { flex: 1 1 100%; text-align: center; }
+.task-undo { width: auto; margin: 0; padding: 6px 4px; font-size: 13px; }
+.ev-need { display: flex; align-items: flex-start; gap: 10px; color: var(--text); margin: 4px 0 10px; cursor: pointer; }
+.ev-need input { width: 22px; height: 22px; margin: 2px 0 0; padding: 0; flex: none; accent-color: var(--accent); display: inline-block; }
+.ev-need small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+html.big-text .task-st { font-size: 15px; }
+
+.task-card .row { margin-bottom: 4px; }
+.task-sub { font-size: 14px; color: #fbbf24; margin: 14px 0 2px; text-transform: uppercase; letter-spacing: .04em; }
+.task-done { margin-top: 10px; }
+.task-done summary { cursor: pointer; color: #86efac; font-weight: 600; font-size: 14px; padding: 6px 0; }
+.task-when { color: #86efac; }

@@ -116,6 +116,18 @@
         <div class="stat"><span>Цей місяць</span><b id="sMonth">0 год 00 хв</b></div>
       </section>
 
+      <!-- Завдання водія: взяти → забрав людей → виконано -->
+      <section id="taskBox" class="card task-card" hidden>
+        <div class="row"><h2 class="ih"><i data-i="userCheck"></i> Завдання</h2><span id="taskCount" class="muted small-text"></span></div>
+        <ul id="taskActive" class="cal-list"></ul>
+        <h3 id="taskFreeTitle" class="task-sub" hidden>Потрібен водій</h3>
+        <ul id="taskFree" class="cal-list"></ul>
+        <details id="taskDoneBox" class="task-done" hidden>
+          <summary id="taskDoneTitle"></summary>
+          <ul id="taskDone" class="cal-list"></ul>
+        </details>
+      </section>
+
       <section class="card history-card">
         <div class="row">
           <h2>Історія змін</h2>
@@ -278,6 +290,11 @@
         </section>
       </div>
 
+      <section class="card p-tasks" id="pTasks" hidden>
+        <div class="row"><h2 class="ih"><i data-i="userCheck"></i> Завдання</h2><span id="pTasksSum" class="muted small-text"></span></div>
+        <ul id="pTasksList" class="cal-list"></ul>
+      </section>
+
       <section class="card p-km">
         <div class="row"><h2 class="ih"><i data-i="gauge"></i> Кілометраж</h2><button id="pkExport" class="btn small" type="button"><i data-i="download"></i> Excel за місяць</button></div>
         <div class="month-bar">
@@ -427,6 +444,7 @@
       </div>
       <label>Скільки людей <input id="evPeople" type="text" inputmode="numeric" placeholder="необов'язково"></label>
       <label>Нотатка <input id="evNote" type="text" maxlength="300" placeholder="Звідки, куди, хто…" autocomplete="off"></label>
+      <label class="check ev-need"><input id="evNeed" type="checkbox" checked> <span><b>Потрібен водій</b><small>Водії побачать завдання і зможуть його взяти</small></span></label>
       <p id="evBy" class="muted small-text"></p>
       <p id="evErr" class="err"></p>
       <div class="row">

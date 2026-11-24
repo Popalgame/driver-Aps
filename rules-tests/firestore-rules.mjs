@@ -269,3 +269,42 @@ test('кадри: створює й вимикає лише керівник; з
   await assertFails(updateDoc(doc(as('newbie'), 'users/newbie'), { role: 'hr' }));
   await assertFails(setDoc(doc(as('x'), 'users/x'), { ...profile('X', 'hr'), kind: 'hr' }));
 });
+
+// ---------- Завдання ----------
+test('завдання: бере лише вільне, кроки — лише той, хто взяв', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'users/olha'), { ...profile('Ольга', 'hr'), kind: 'hr' });
+    await setDoc(doc(db, 'users/carl'), profile('Карл', 'driver'));
+    await setDoc(doc(db, 'projects/strumet'), project(['alice', 'bob'], { hr: ['olha'] }));
+    await setDoc(doc(db, 'events/t1'), event('strumet', 'olha', { need: true, status: 'open', driver: null, editedBy: 'olha', editedByName: 'Ольга' }));
+  });
+  const a = as('alice'), b = as('bob'), h = as('olha');
+  const take = (uid, name) => ({ status: 'taken', driver: uid, driverName: name, takenAt: 10, updatedAt: 10 });
+  // кадрова не може «взяти»
+  await assertFails(updateDoc(doc(h, 'events/t1'), take('olha', 'Ольга')));
+  // не можна взяти за іншого
+  await assertFails(updateDoc(doc(a, 'events/t1'), take('bob', 'Боб')));
+  // не можна створити вже взяте
+  await assertFails(setDoc(doc(a, 'events/t2'), event('strumet', 'alice', { need: true, status: 'taken', driver: 'alice' })));
+  await assertSucceeds(updateDoc(doc(a, 'events/t1'), take('alice', 'Аліса')));
+  // Боб уже не може перехопити
+  await assertFails(updateDoc(doc(b, 'events/t1'), take('bob', 'Боб')));
+  await assertFails(updateDoc(doc(b, 'events/t1'), { status: 'done', doneAt: 20 }));
+  // Аліса: в дорозі → виконано
+  await assertSucceeds(updateDoc(doc(a, 'events/t1'), { status: 'onway', startedAt: 15, updatedAt: 15 }));
+  await assertSucceeds(updateDoc(doc(a, 'events/t1'), { status: 'done', doneAt: 20, updatedAt: 20 }));
+  // кадрова може змінити текст (не чіпаючи статус), водій — нотатку, не стираючи «змінила Ольга»
+  await assertSucceeds(updateDoc(doc(h, 'events/t1'), { note: 'Кабінет 12', editedBy: 'olha', editedByName: 'Ольга', updatedAt: 21 }));
+  await assertSucceeds(updateDoc(doc(b, 'events/t1'), { people: 4, updatedAt: 22 }));
+  await assertFails(updateDoc(doc(h, 'events/t1'), { status: 'open', driver: null }));
+  // відмовитись може лише свій водій
+  await setDoc(doc(as('boss'), 'events/t3'), event('strumet', 'boss', { need: true }));
+  await assertSucceeds(updateDoc(doc(b, 'events/t3'), take('bob', 'Боб')));
+  await assertFails(updateDoc(doc(a, 'events/t3'), { status: 'open', driver: null, driverName: '' }));
+  await assertSucceeds(updateDoc(doc(b, 'events/t3'), { status: 'open', driver: null, driverName: '', takenAt: null }));
+  // керівник перепризначає
+  await assertSucceeds(updateDoc(doc(as('boss'), 'events/t3'), take('alice', 'Аліса')));
+  // водій не з проєкту — нічого
+  await assertFails(updateDoc(doc(as('carl'), 'events/t1'), take('carl', 'Карл')));
+});
