@@ -1,8 +1,9 @@
 // Панель керівника: усі водії, хто зараз у дорозі, підсумки за період, CSV,
 // додавання водіїв, підтвердження й закриття доступу.
-import { breakMs, workMs, workInRange, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
+import { workInRange, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { summarizeByDriver, shiftsToCsv, downloadCsv } from './report.js';
 import * as cloud from './cloud.js';
+import { openProfile, refreshProfile } from './profile.js';
 
 const $ = (id) => document.getElementById(id);
 const DAY = 24 * 3600e3;
@@ -13,10 +14,8 @@ let users = [];
 let shifts = [];
 let range = null;
 let stopUsers = null, stopShifts = null, timer = null;
-const open = new Set(); // розгорнуті водії
 
 const timeFmt = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
-const dateFmt = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'short' });
 const dateLong = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 const isoDay = (d) => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
 
@@ -54,7 +53,7 @@ export function startManager() {
     $('pFrom').value = isoDay(startOfMonth());
     $('pTo').value = isoDay(new Date());
   }
-  stopUsers = cloud.watchUsers((list) => { users = list; render(); }, showError);
+  stopUsers = cloud.watchUsers((list) => { users = list; render(); refreshProfile(); }, showError);
   subscribe();
   timer = setInterval(render, 30000);
 }
@@ -206,38 +205,21 @@ function render() {
     head.append(left, right);
     li.append(head);
 
-    if (open.has(r.uid)) {
-      const ul = el('ul', 'history');
-      if (!r.shifts.length) ul.append(el('li', 'muted', 'Немає змін за цей період.'));
-      for (const s of r.shifts) {
-        const item = el('li', 'shift static');
-        const l = el('div');
-        const endTxt = s.end == null ? 'зараз' : timeFmt.format(s.end);
-        l.append(el('div', 't', `${dateFmt.format(s.start)} · ${timeFmt.format(s.start)} – ${endTxt}`));
-        const b = breakMs(s, now);
-        const meta = [b >= 60000 ? `перерви ${hm(b)}` : '', s.note].filter(Boolean).join(' · ');
-        if (meta) l.append(el('div', 'n', meta));
-        item.append(l, el('div', 'd', hm(workMs(s, now))));
-        ul.append(item);
-      }
-      li.append(ul);
-      if (r.role === 'driver' || off) {
-        const acts = el('div', 'actions');
-        const b = el('button', 'btn small ' + (off ? 'start' : 'danger'), off ? 'Відкрити доступ' : 'Закрити доступ');
-        b.type = 'button';
-        b.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          if (off) setRole(r.uid, 'driver');
-          else setRole(r.uid, 'disabled', `Закрити доступ для «${r.name}»? Водій не зможе записувати час. Історія збережеться.`);
-        });
-        acts.append(el('span', 'muted small-text', r.email), b);
-        li.append(acts);
-      }
-    }
-    li.addEventListener('click', () => {
-      if (open.has(r.uid)) open.delete(r.uid); else open.add(r.uid);
-      render();
-    });
+    li.append(el('span', 'chev', '›'));
+    li.tabIndex = 0;
+    li.setAttribute('role', 'button');
+    li.setAttribute('aria-label', `Відкрити сторінку водія ${r.name}`);
+    const openIt = () => {
+      $('managerView').hidden = true;
+      openProfile(
+        r.uid,
+        (id) => users.find((u) => u.id === id) || { name: r.name, email: r.email, role: r.role },
+        setRole,
+        () => { $('managerView').hidden = false; $('pageTitle').textContent = 'Водії'; render(); },
+      );
+    };
+    li.addEventListener('click', openIt);
+    li.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openIt(); } });
     list.append(li);
   }
 }

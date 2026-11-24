@@ -2,6 +2,7 @@ import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startO
 import { shiftsToCsv, downloadCsv } from './report.js';
 import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
+import { closeProfile } from './profile.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
 import { VERSION_LABEL } from './version.js';
@@ -254,6 +255,7 @@ function setTab(tab) {
   for (const b of document.querySelectorAll('.side-nav button')) b.classList.toggle('on', b.dataset.tab === tab);
   $('pageTitle').textContent = { manager: 'Водії', settings: 'Налаштування' }[tab] || 'Мій час';
   closeMenu();
+  closeProfile();
   $('driverView').hidden = tab !== 'driver';
   $('managerView').hidden = tab !== 'manager';
   $('settingsView').hidden = tab !== 'settings';

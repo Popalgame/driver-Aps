@@ -136,6 +136,53 @@
       <p id="mErr" class="err center"></p>
     </div>
 
+    <!-- Сторінка водія (для керівника) -->
+    <div id="profileView" class="profile" hidden>
+      <button id="pBack" class="btn back" type="button">‹ Усі водії</button>
+      <section class="card p-head">
+        <div class="avatar big" id="pAvatar"></div>
+        <div class="p-who">
+          <h2 id="pName"></h2>
+          <div id="pEmail" class="muted small-text"></div>
+          <div id="pStatus" class="badge"></div>
+        </div>
+        <div class="p-live">
+          <div id="pTimer" class="p-timer">—</div>
+          <div id="pTimerSub" class="muted small-text"></div>
+        </div>
+        <div class="p-actions">
+          <button id="pCsv" class="btn small" type="button">⬇ CSV</button>
+          <button id="pAccess" class="btn small danger" type="button" hidden></button>
+        </div>
+      </section>
+
+      <div class="p-grid">
+        <div class="p-col">
+          <section class="stats p-stats" id="pStats"></section>
+          <p id="pMeta" class="muted small-text p-meta"></p>
+        </div>
+        <section class="card p-week">
+          <div class="row">
+            <h2>Години по днях</h2>
+            <div class="week-nav">
+              <button id="pPrev" class="btn small" type="button" aria-label="Попередній тиждень">‹</button>
+              <span id="pWeekLabel"></span>
+              <button id="pNext" class="btn small" type="button" aria-label="Наступний тиждень">›</button>
+            </div>
+          </div>
+          <div id="pChart" class="chart" role="img"></div>
+          <p id="pWeekTotal" class="muted small-text"></p>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="row"><h2>Історія змін</h2><span id="pCount" class="muted small-text"></span></div>
+        <ul id="pHistory" class="history"></ul>
+        <p id="pEmptyHist" class="muted" hidden>Цей водій ще не мав жодної зміни.</p>
+        <button id="pMore" class="btn link" type="button" hidden></button>
+      </section>
+    </div>
+
     <div id="settingsView" class="settings" hidden>
       <section class="card install-card">
         <h2>📲 Встановити апку</h2>

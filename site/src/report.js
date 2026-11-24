@@ -1,5 +1,5 @@
 // Звіти для керівника і CSV — чиста логіка без DOM (tests/report.test.mjs).
-import { breakMs, workMs, workInRange } from './time.js';
+import { breakMs, workMs, workInRange, startOfDay, startOfWeek, startOfMonth } from './time.js';
 
 // Підсумок по водіях за період [from, to).
 // Повертає [{ uid, name, email, role, total, count, active, onBreak, shifts }] —
@@ -71,4 +71,40 @@ export function downloadCsv(csv, name) {
   const a = Object.assign(document.createElement('a'), { href: url, download: name });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---------- Сторінка водія ----------
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const addMonths = (d, n) => { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; };
+const sum = (shifts, from, to, now) => shifts.reduce((a, s) => a + workInRange(s, +from, +to, now), 0);
+
+// Підсумки одного водія: години за періоди, кількість змін, середня зміна, перерви
+export function driverStats(shifts, now = Date.now()) {
+  const day = startOfDay(new Date(now));
+  const week = startOfWeek(new Date(now));
+  const month = startOfMonth(new Date(now));
+  const end = now + 1;
+  const done = shifts.filter((s) => s.end != null);
+  const inMonth = shifts.filter((s) => workInRange(s, +month, end, now) > 0 || (s.end == null && s.start >= +month));
+  return {
+    today: sum(shifts, day, end, now),
+    week: sum(shifts, week, end, now),
+    lastWeek: sum(shifts, addDays(week, -7), week, now),
+    month: sum(shifts, month, end, now),
+    lastMonth: sum(shifts, addMonths(month, -1), month, now),
+    all: shifts.reduce((a, s) => a + workMs(s, now), 0),
+    shiftsMonth: inMonth.length,
+    shiftsAll: shifts.length,
+    avgShift: done.length ? done.reduce((a, s) => a + workMs(s), 0) / done.length : 0,
+    breaksMonth: inMonth.reduce((a, s) => a + breakMs(s, now), 0),
+    firstShift: shifts.length ? Math.min(...shifts.map((s) => s.start)) : null,
+  };
+}
+
+// Години по днях тижня (пн–нд), що починається з weekStart
+export function weekByDay(shifts, weekStart, now = Date.now()) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const from = addDays(weekStart, i), to = addDays(weekStart, i + 1);
+    return { start: +from, ms: sum(shifts, from, to, now) };
+  });
 }
