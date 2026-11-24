@@ -58,14 +58,16 @@ shifts/{id}   { uid, driverName, start, end, breaks: [{start, end}], note, updat
 - `disabled` — доступ закрито керівником;
 - `manager` — бачить усіх (зміни лише читає), додає водіїв, підтверджує, закриває доступ.
 
-Правила публікуються автоматично разом з апкою (GitHub Actions).
+Після зміни правил встав `site/firestore.rules` у Firebase Console → Firestore → Rules → **Publish**
+(автопублікація правил потребує окремих дозволів сервісного акаунта).
 
 ## Підключення Firebase (вже зроблено для проєкту `driver-aps`)
 
 1. Authentication → Sign-in method → увімкнути **Email/Password**.
 2. Firestore Database → Create database (`europe-central2`, production).
 3. Project settings → Your apps → Web → конфіг у `site/src/firebase-config.js`.
-4. Секрет `FIREBASE_SERVICE_ACCOUNT` у GitHub — публікація апки й правил.
+4. Секрет `FIREBASE_SERVICE_ACCOUNT` у GitHub — публікація апки.
+5. Firestore → Rules — вміст `site/firestore.rules` → **Publish**.
 
 ### Перший керівник
 
