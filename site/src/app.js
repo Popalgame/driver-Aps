@@ -3,6 +3,8 @@ import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
 import { closeProfile } from './profile.js';
 import { startMileage, stopMileage } from './mileage.js';
+import { startCalendar, stopCalendar } from './calendar.js';
+import { startProjects, stopProjects } from './projects.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
 import { VERSION_LABEL } from './version.js';
@@ -254,13 +256,17 @@ function show(view) {
 
 function setTab(tab) {
   for (const b of document.querySelectorAll('.side-nav button')) b.classList.toggle('on', b.dataset.tab === tab);
-  $('pageTitle').textContent = { manager: 'Водії', settings: 'Налаштування', mileage: 'Кілометраж' }[tab] || 'Мій час';
+  $('pageTitle').textContent = { manager: 'Водії', settings: 'Налаштування', mileage: 'Кілометраж', calendar: 'Календар', projects: 'Проєкти' }[tab] || 'Мій час';
   closeMenu();
   closeProfile();
   $('driverView').hidden = tab !== 'driver';
   $('managerView').hidden = tab !== 'manager';
   $('settingsView').hidden = tab !== 'settings';
   $('mileageView').hidden = tab !== 'mileage';
+  $('calendarView').hidden = tab !== 'calendar';
+  $('projectsView').hidden = tab !== 'projects';
+  if (tab === 'calendar') startCalendar(profile); else stopCalendar();
+  if (tab === 'projects' && profile?.role === 'manager') startProjects(profile); else stopProjects();
   if (tab === 'mileage') startMileage(profile); else stopMileage();
   if (tab === 'settings') { showSettings(profile); refreshInstall(); }
   if (tab === 'manager') {
@@ -374,7 +380,7 @@ function onProfile(p) {
 
   const pending = sameUser ? (store?.queued || []) : [];
   store?.stop();
-  if (!sameUser) stopManager();
+  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); }
   profile = p;
   if (!p) {
     store = null;
@@ -400,6 +406,7 @@ function onProfile(p) {
   store = cloudStore(p, cachingSetShifts(p.uid));
   for (const [op, arg] of pending) store[op](arg); // натискання, зроблені під час запуску
   $('navManager').hidden = p.role !== 'manager';
+  $('navProjects').hidden = p.role !== 'manager';
   if (!sameUser) setTab('driver');
   show('main');
   updateModeNote();
@@ -428,6 +435,7 @@ async function boot() {
     fillUser(profile);
     store = queuedStore();
     $('navManager').hidden = cached.role !== 'manager';
+    $('navProjects').hidden = cached.role !== 'manager';
     setTab('driver');
     show('main');
     setShifts(loadCachedShifts(cached.uid));

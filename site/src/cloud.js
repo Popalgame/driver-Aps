@@ -221,3 +221,64 @@ export function watchAllMileage(from, to, cb, onError) {
   });
   return () => { cancelled = true; stop?.(); };
 }
+
+// ---------- Проєкти й календар ----------
+// projects/{pid} { name, members: [uid], names: {uid: ім'я}, color, createdAt, updatedAt }
+// events/{id}    { project, date: 'РРРР-ММ-ДД', time: 'ГГ:ХХ' | '', title, people|null, note, by, byName, createdAt, updatedAt }
+function watchWhenReady(make) {
+  let stop = null, cancelled = false;
+  ready.then(() => { if (!cancelled) stop = make(); });
+  return () => { cancelled = true; stop?.(); };
+}
+
+// Керівник — усі проєкти; водій — лише ті, де він учасник
+export function watchProjects(uid, all, cb, onError) {
+  return watchWhenReady(() => {
+    const col = fb.collection(db, 'projects');
+    const q = all ? col : fb.query(col, fb.where('members', 'array-contains', uid));
+    return fb.onSnapshot(q, (snap) => cb(snap.docs.map(fromDoc)), onError);
+  });
+}
+
+export async function putProject(p) {
+  await ready;
+  const { id, ...data } = p;
+  return fb.setDoc(fb.doc(db, 'projects', id), { ...data, updatedAt: Date.now() });
+}
+
+// Разом із проєктом видаляються і його події
+export async function removeProject(id) {
+  await ready;
+  const evs = await fb.getDocs(fb.query(fb.collection(db, 'events'), fb.where('project', '==', id)));
+  const batch = fb.writeBatch(db);
+  for (const d of evs.docs) batch.delete(d.ref);
+  batch.delete(fb.doc(db, 'projects', id));
+  return batch.commit();
+}
+
+// Керівник — усі події; водій — події своїх проєктів (окремий запит на кожен проєкт)
+export function watchEvents(projectIds, all, cb, onError) {
+  return watchWhenReady(() => {
+    const col = fb.collection(db, 'events');
+    if (all) return fb.onSnapshot(col, (snap) => cb(snap.docs.map(fromDoc)), onError);
+    const parts = new Map();
+    const emit = () => cb([...parts.values()].flat());
+    const stops = projectIds.map((pid) => fb.onSnapshot(fb.query(col, fb.where('project', '==', pid)), (snap) => {
+      parts.set(pid, snap.docs.map(fromDoc));
+      emit();
+    }, onError));
+    if (!projectIds.length) cb([]);
+    return () => stops.forEach((s) => s());
+  });
+}
+
+export async function putEvent(e) {
+  await ready;
+  const { id, ...data } = e;
+  return fb.setDoc(fb.doc(db, 'events', id), { ...data, updatedAt: Date.now() });
+}
+
+export async function removeEvent(id) {
+  await ready;
+  return fb.deleteDoc(fb.doc(db, 'events', id));
+}

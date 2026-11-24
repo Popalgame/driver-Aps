@@ -28,7 +28,9 @@
     <nav class="side-nav">
       <button type="button" data-tab="driver" class="on"><span class="ico">🕒</span>Мій час</button>
       <button type="button" data-tab="mileage"><span class="ico">🚗</span>Кілометраж</button>
+      <button type="button" data-tab="calendar"><span class="ico">📅</span>Календар</button>
       <button type="button" data-tab="manager" id="navManager" hidden><span class="ico">👥</span>Водії</button>
+      <button type="button" data-tab="projects" id="navProjects" hidden><span class="ico">📁</span>Проєкти</button>
       <button type="button" data-tab="settings"><span class="ico">⚙️</span>Налаштування</button>
     </nav>
     <div class="side-foot">
@@ -173,6 +175,45 @@
         <p id="kmEmpty" class="muted">Немає записів.</p>
         <button id="kmExportAll" class="btn link" type="button">⬇ Excel за весь час</button>
       </section>
+    </div>
+
+    <!-- Календар: події проєктів (медкомісія, інструктаж…) — бачать усі водії проєкту -->
+    <div id="calendarView" class="calendar" hidden>
+      <section class="card cal-card">
+        <div class="month-bar">
+          <button id="calPrev" class="btn small" type="button" aria-label="Попередній місяць">‹</button>
+          <div id="calMonth" class="cal-month"></div>
+          <button id="calNext" class="btn small" type="button" aria-label="Наступний місяць">›</button>
+        </div>
+        <div id="calProjects" class="cal-projects"></div>
+        <div class="cal-wd" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span></div>
+        <div id="calGrid" class="cal-grid" role="grid"></div>
+        <button id="calToday" class="btn link" type="button">Сьогодні</button>
+      </section>
+
+      <section class="card cal-day">
+        <div class="row">
+          <h2 id="calDayTitle"></h2>
+          <button id="calAdd" class="btn small start" type="button">＋ Подія</button>
+        </div>
+        <ul id="calDayList" class="cal-list"></ul>
+        <p id="calDayEmpty" class="muted">Цього дня подій немає.</p>
+      </section>
+
+      <section class="card cal-up">
+        <h2>Найближчі події</h2>
+        <ul id="calUpList" class="cal-list"></ul>
+        <p id="calUpEmpty" class="muted">Попереду подій немає.</p>
+      </section>
+      <p id="calNote" class="muted center" hidden></p>
+    </div>
+
+    <!-- Проєкти (керівник): які водії працюють на якому проєкті -->
+    <div id="projectsView" hidden>
+      <button id="projAdd" class="btn big start add" type="button">＋ Новий проєкт</button>
+      <ul id="projList" class="drivers"></ul>
+      <p id="projEmpty" class="muted center" hidden>Ще немає жодного проєкту. Створи перший — наприклад, «Струмет», — і додай до нього водіїв.</p>
+      <p id="projErr" class="err center"></p>
     </div>
 
     <!-- Сторінка водія (для керівника) -->
@@ -343,6 +384,51 @@
         <button id="kmDel" class="btn danger small" type="button">Видалити</button>
         <span>
           <button id="kmCancel" class="btn small" type="button">Скасувати</button>
+          <button class="btn small start" type="submit">Зберегти</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="evDlg">
+    <form id="evForm" novalidate>
+      <h3 id="evTitle">Нова подія</h3>
+      <label id="evProjLabel">Проєкт <select id="evProject"></select></label>
+      <div class="two">
+        <label>Дата <input id="evDate" type="date"></label>
+        <label>Час <input id="evTime" type="time"></label>
+      </div>
+      <label>Що <input id="evWhat" type="text" maxlength="80" placeholder="напр. Медкомісія" autocomplete="off"></label>
+      <div class="ev-quick" id="evQuick">
+        <button type="button">Медкомісія</button><button type="button">Інструктаж</button><button type="button">Перевезення людей</button><button type="button">Огляд авто</button>
+      </div>
+      <label>Скільки людей <input id="evPeople" type="text" inputmode="numeric" placeholder="необов'язково"></label>
+      <label>Нотатка <input id="evNote" type="text" maxlength="300" placeholder="Звідки, куди, хто…" autocomplete="off"></label>
+      <p id="evBy" class="muted small-text"></p>
+      <p id="evErr" class="err"></p>
+      <div class="row">
+        <button id="evDel" class="btn danger small" type="button">Видалити</button>
+        <span>
+          <button id="evCancel" class="btn small" type="button">Скасувати</button>
+          <button class="btn small start" type="submit">Зберегти</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="projDlg">
+    <form id="projForm" novalidate>
+      <h3 id="projTitle">Новий проєкт</h3>
+      <label>Назва <input id="projName" type="text" maxlength="40" placeholder="напр. Струмет" autocomplete="off"></label>
+      <div class="field-label">Колір</div>
+      <div id="projColors" class="swatches"></div>
+      <div class="field-label">Водії на проєкті</div>
+      <div id="projDrivers" class="checks"></div>
+      <p id="projDlgErr" class="err"></p>
+      <div class="row">
+        <button id="projDel" class="btn danger small" type="button">Видалити</button>
+        <span>
+          <button id="projCancel" class="btn small" type="button">Скасувати</button>
           <button class="btn small start" type="submit">Зберегти</button>
         </span>
       </div>

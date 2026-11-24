@@ -153,3 +153,70 @@ test('кілометраж: некоректні дані і непідтвер�
   await assertFails(setDoc(doc(as('newbie'), 'mileage/n1'), odoDoc('newbie')));
   await assertFails(setDoc(doc(as('gone'), 'mileage/g1'), odoDoc('gone')));
 });
+
+// ---------- Проєкти й календар ----------
+const project = (members, extra = {}) => ({
+  name: 'Струмет', members, names: Object.fromEntries(members.map((m) => [m, m])), color: 0, createdAt: 1, updatedAt: 1, ...extra,
+});
+const event = (project, by, extra = {}) => ({
+  project, date: '2026-12-03', time: '08:00', title: 'Медкомісія', people: 5, note: '', by, byName: by, createdAt: 1, updatedAt: 1, ...extra,
+});
+async function seedProjects() {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'projects/strumet'), project(['alice', 'bob']));
+    await setDoc(doc(db, 'projects/mlesna'), project(['gone'], { name: 'Млешна' }));
+    await setDoc(doc(db, 'events/e1'), event('strumet', 'alice'));
+    await setDoc(doc(db, 'events/e2'), event('mlesna', 'boss'));
+  });
+}
+
+test('проєкти: водій бачить лише свої, створює лише керівник', async () => {
+  await seedProjects();
+  const a = as('alice');
+  await assertSucceeds(getDoc(doc(a, 'projects/strumet')));
+  await assertFails(getDoc(doc(a, 'projects/mlesna')));
+  await assertSucceeds(getDocs(query(collection(a, 'projects'), where('members', 'array-contains', 'alice'))));
+  await assertFails(getDocs(collection(a, 'projects')));
+  await assertFails(setDoc(doc(a, 'projects/mine'), project(['alice'])));
+  await assertFails(updateDoc(doc(a, 'projects/strumet'), { members: ['alice'] }));
+  const m = as('boss');
+  await assertSucceeds(getDocs(collection(m, 'projects')));
+  await assertSucceeds(setDoc(doc(m, 'projects/new'), project(['bob'], { name: 'Новий' })));
+  await assertSucceeds(updateDoc(doc(m, 'projects/strumet'), { members: ['alice'], names: { alice: 'Аліса' }, updatedAt: 2 }));
+  await assertFails(setDoc(doc(m, 'projects/bad'), project(['bob'], { name: '' })));
+  await assertFails(setDoc(doc(m, 'projects/bad'), project(['bob'], { extra: 1 })));
+  await assertSucceeds(deleteDoc(doc(m, 'projects/new')));
+  // pending і заблокований не бачать навіть «свій» проєкт
+  await assertFails(getDoc(doc(as('gone'), 'projects/mlesna')));
+});
+
+test('календар: події бачать і змінюють лише учасники проєкту', async () => {
+  await seedProjects();
+  const b = as('bob');
+  await assertSucceeds(getDoc(doc(b, 'events/e1')));
+  await assertSucceeds(getDocs(query(collection(b, 'events'), where('project', '==', 'strumet'))));
+  await assertFails(getDocs(query(collection(b, 'events'), where('project', '==', 'mlesna'))));
+  await assertFails(getDoc(doc(b, 'events/e2')));
+  await assertFails(getDocs(collection(b, 'events')));
+  // будь-хто з проєкту редагує й видаляє
+  await assertSucceeds(updateDoc(doc(b, 'events/e1'), { people: 7, updatedAt: 2 }));
+  await assertFails(updateDoc(doc(b, 'events/e1'), { project: 'mlesna' }));
+  await assertFails(updateDoc(doc(b, 'events/e1'), { by: 'bob' }));
+  await assertSucceeds(setDoc(doc(b, 'events/e3'), event('strumet', 'bob')));
+  await assertFails(setDoc(doc(b, 'events/e4'), event('strumet', 'alice')));   // від чужого імені
+  await assertFails(setDoc(doc(b, 'events/e5'), event('mlesna', 'bob')));     // не свій проєкт
+  await assertFails(setDoc(doc(b, 'events/e6'), event('strumet', 'bob', { date: '3.12.2026' })));
+  await assertFails(setDoc(doc(b, 'events/e7'), event('strumet', 'bob', { title: '' })));
+  await assertSucceeds(setDoc(doc(b, 'events/e8'), event('strumet', 'bob', { time: '', people: null })));
+  await assertSucceeds(deleteDoc(doc(b, 'events/e1')));
+  // заблокований учасник — нічого
+  const g = as('gone');
+  await assertFails(getDoc(doc(g, 'events/e2')));
+  await assertFails(setDoc(doc(g, 'events/e9'), event('mlesna', 'gone')));
+  // керівник: усе
+  const m = as('boss');
+  await assertSucceeds(getDocs(collection(m, 'events')));
+  await assertSucceeds(setDoc(doc(m, 'events/e10'), event('mlesna', 'boss')));
+  await assertSucceeds(deleteDoc(doc(m, 'events/e2')));
+});
