@@ -267,8 +267,6 @@ body.app-on .sidebar { display: flex; }
 .row.wrap { flex-wrap: wrap; }
 .url { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; overflow-wrap: anywhere; }
 
-/* Великий текст (налаштування) */
-html.big-text { zoom: 1.15; }
 
 @media (min-width: 1100px) {
   #settingsView:not([hidden]) {
@@ -439,3 +437,74 @@ input[type="date"], input[type="datetime-local"] {
 input[type="date"]::-webkit-date-and-time-value, input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
 .range { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .range label, dialog label { min-width: 0; }
+
+/* ---------- Великий текст (налаштування) ----------
+   Лише більші шрифти (×1,15), без масштабування сторінки: zoom на iPhone
+   робив сторінку ширшою за екран, і Safari стискав увесь вміст. */
+html.big-text body { font-size: 18px; }
+html.big-text .timer { font-size: clamp(50px, 16vw, 110px); }
+html.big-text .top h1 { font-size: 23px; }
+html.big-text h2 { font-size: 20px; }
+html.big-text .status { font-size: 15px; }
+html.big-text .sub { font-size: 16px; }
+html.big-text .btn.big { font-size: 23px; }
+html.big-text .btn.small { font-size: 16px; }
+html.big-text .stat span { font-size: 14px; }
+html.big-text .stat b { font-size: 17px; }
+html.big-text .day { font-size: 15px; }
+html.big-text .shift .n { font-size: 15px; }
+html.big-text dialog label { font-size: 16px; }
+html.big-text .err { font-size: 16px; }
+html.big-text .user { font-size: 16px; }
+html.big-text .small-text { font-size: 15px; }
+html.big-text .seg.small button { font-size: 16px; }
+html.big-text #authView label, html.big-text .range label, html.big-text .sform label { font-size: 16px; }
+html.big-text .summary span { font-size: 16px; }
+html.big-text .dname { font-size: 20px; }
+html.big-text .badge { font-size: 15px; }
+html.big-text .dtotal b { font-size: 20px; }
+html.big-text .dtotal span { font-size: 15px; }
+html.big-text .btn.add { font-size: 21px; }
+html.big-text .pend .n { font-size: 15px; }
+html.big-text .creds { font-size: 17px; }
+html.big-text #authView label.check { font-size: 17px; }
+html.big-text .hero-name { font-size: 34px; }
+html.big-text .hero-sub { font-size: 17px; }
+html.big-text .side-brand { font-size: 25px; }
+html.big-text .side-who span { font-size: 15px; }
+html.big-text .side-email { font-size: 15px; }
+html.big-text .menu-btn { font-size: 25px; }
+html.big-text body.app-on .page-title { font-size: 32px; }
+html.big-text .stat span { font-size: 16px; }
+html.big-text .stat b { font-size: 23px; }
+html.big-text .timer { font-size: 55px; }
+html.big-text .msg { font-size: 16px; }
+html.big-text .toggle small { font-size: 15px; }
+html.big-text .url { font-size: 16px; }
+html.big-text .note { font-size: 16px; }
+html.big-text .tag-alpha { font-size: 13px; }
+html.big-text .driver .chev { font-size: 30px; }
+html.big-text .avatar.big { font-size: 32px; }
+html.big-text .p-who h2 { font-size: 25px; }
+html.big-text .p-who .badge { font-size: 16px; }
+html.big-text .p-timer { font-size: 41px; }
+html.big-text .week-nav { font-size: 16px; }
+html.big-text .c-y { font-size: 13px; }
+html.big-text .c-x { font-size: 14px; }
+html.big-text .c-v { font-size: 14px; }
+html.big-text .c-tip { font-size: 15px; }
+html.big-text .odo-field input { font-size: 30px; }
+html.big-text .odo-form .btn { font-size: 20px; }
+html.big-text .odo-done { font-size: 16px; }
+html.big-text .month-bar .btn { font-size: 23px; }
+html.big-text .month-bar select { font-size: 21px; }
+html.big-text .dtotal .dkm { font-size: 15px; }
+html.big-text .km-table th { font-size: 14px; }
+html.big-text .pk-sub { font-size: 17px; }
+html.big-text .km-more summary { font-size: 16px; }
+
+/* Перемикачі (Сьогодні / Тиждень / …) завжди вміщаються в ширину */
+.seg button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 360px) { .seg.small button { padding-left: 2px; padding-right: 2px; } }
+html.big-text .seg.small button { font-size: 15px; }
+@media (max-width: 360px) { html.big-text .seg.small button { font-size: 14px; } }

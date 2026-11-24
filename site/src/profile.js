@@ -290,7 +290,7 @@ function renderKm() {
   const opts = [];
   for (; +m <= +cur; m = addMonths(m, 1)) opts.unshift(+m);
   $('pkMonthSel').replaceChildren(...opts.map((v) => Object.assign(document.createElement('option'),
-    { value: String(v), textContent: cap(monthFmt.format(v)) + (v === +cur ? ' (зараз)' : '') })));
+    { value: String(v), textContent: cap(monthFmt.format(v).replace(/\s*р\.$/, '')) })));
   $('pkMonthSel').value = String(+kmMonth);
   $('pkNext').disabled = +kmMonth === +cur;
 

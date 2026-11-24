@@ -171,7 +171,7 @@ function fillMonthSelect() {
   sel.replaceChildren(...opts.map((v) => {
     const o = document.createElement('option');
     o.value = String(v);
-    o.textContent = cap(monthFmt.format(v)) + (v === +cur ? ' (зараз)' : '');
+    o.textContent = cap(monthFmt.format(v).replace(/\s*р\.$/, ''));
     return o;
   }));
   sel.value = String(+month);
