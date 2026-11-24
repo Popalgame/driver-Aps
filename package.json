@@ -7,15 +7,22 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "test": "node --test",
-    "lint": "eslint site scripts tests",
-    "check": "npm run lint && npm test"
+    "lint": "eslint site scripts tests rules-tests",
+    "check": "npm run lint && npm test",
+    "test:rules": "firebase emulators:exec --config site/firebase.json --only firestore --project demo-driver-aps \"node --test rules-tests/firestore-rules.mjs\"",
+    "emulators": "firebase emulators:start --config site/firebase.json --only auth,firestore --project demo-driver-aps",
+    "build:firebase": "node scripts/build-firebase.mjs"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.0.0",
+    "firebase": "^13.4.0",
+    "firebase-tools": "^15.37.0",
     "globals": "^15.0.0"
   }
 }

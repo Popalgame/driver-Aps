@@ -67,3 +67,43 @@ dialog input {
   border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit;
 }
 .err { color: var(--red); min-height: 1em; font-size: 14px; margin: 0 0 8px; }
+
+/* ---------- Вхід, вкладки, керівник ---------- */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.user { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; min-width: 0; }
+.user span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; }
+.center { text-align: center; }
+.small-text { font-size: 13px; }
+[hidden] { display: none !important; }
+
+.seg { display: flex; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 16px; }
+.seg button {
+  flex: 1; border: 0; border-radius: 9px; padding: 10px 6px; font: inherit; font-weight: 600;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.seg button.on { background: var(--accent); color: #fff; }
+.seg.small button { font-size: 14px; padding: 8px 4px; }
+#tabs { background: var(--card); }
+
+#authView label, .range label { display: block; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
+#authView input, .range input {
+  display: block; width: 100%; margin-top: 4px; padding: 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit;
+}
+#authView .btn.big { margin-top: 4px; }
+.btn.link { background: transparent; color: var(--muted); width: 100%; margin-top: 6px; font-weight: 500; }
+.btn:disabled { opacity: .6; }
+
+.range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.summary { margin-top: 4px; }
+.summary span { font-size: 14px; }
+.drivers { list-style: none; padding: 0; margin: 0; }
+.driver { cursor: pointer; margin-bottom: 10px; }
+.dname { font-weight: 700; font-size: 17px; }
+.badge { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.badge.on { color: var(--accent-on); }
+.badge.pause { color: var(--amber); }
+.dtotal { text-align: right; white-space: nowrap; }
+.dtotal b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.dtotal span { font-size: 13px; }
+.shift.static { cursor: default; }

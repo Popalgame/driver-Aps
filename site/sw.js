@@ -1,5 +1,6 @@
-const CACHE = 'driver-time-v3';
-const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'manifest.webmanifest', 'icon.svg'];
+const CACHE = 'driver-time-v4';
+const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'src/report.js', 'src/cloud.js', 'src/manager.js', 'src/firebase-config.js',
+  'vendor/firebase.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -16,6 +17,8 @@ self.addEventListener('activate', (e) => {
 // Спершу мережа, без мережі — кеш (апка працює офлайн у дорозі)
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // Лише власні файли апки. Запити до Firebase (вхід, база) — напряму в мережу.
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then((res) => {

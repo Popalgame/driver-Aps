@@ -1,67 +1,90 @@
 import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
+import { shiftsToCsv, downloadCsv } from './report.js';
+import * as cloud from './cloud.js';
+import { startManager, stopManager } from './manager.js';
 
-// Модель: { id, start, end|null, breaks: [{start, end|null}], note }  (час у мс)
+// Зміна: { id, start, end|null, breaks: [{start, end|null}], note }  (час у мс)
+// У хмарі ще: uid, driverName, updatedAt.
 const KEY = 'driver-shifts-v1';
 const $ = (id) => document.getElementById(id);
 
-let shifts = load();
+let shifts = [];
+let store = null;   // { put(shift), remove(id), stop() }
+let profile = null; // у хмарному режимі: { uid, name, email, role }
 
-function load() {
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+// ---------- Сховища ----------
+
+function loadLocal() {
   try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
 }
-function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(shifts)); } catch { /* сховище недоступне */ }
+
+function localStore(onChange) {
+  let list = loadLocal();
+  const commit = () => {
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* сховище недоступне */ }
+    onChange(list);
+  };
+  onChange(list);
+  return {
+    put(s) { list = list.filter((x) => x.id !== s.id).concat(s); commit(); },
+    remove(id) { list = list.filter((x) => x.id !== id); commit(); },
+    stop() {},
+  };
+}
+
+function cloudStore(user, onChange) {
+  const stop = cloud.watchMyShifts(user.uid, onChange, showCloudError);
+  const fail = (e) => showCloudError(e);
+  return {
+    put(s) { cloud.putShift({ ...s, uid: user.uid, driverName: user.name }).catch(fail); },
+    remove(id) { cloud.removeShift(id).catch(fail); },
+    stop,
+  };
+}
+
+function showCloudError(e) {
+  console.error(e);
+  $('modeNote').textContent = e?.code === 'permission-denied'
+    ? '⚠ Немає доступу до даних. Перевір правила Firestore.'
+    : '⚠ Помилка бази даних: ' + (e?.message || e);
 }
 
 const active = () => shifts.find((s) => s.end == null);
 const onBreak = (s) => s && s.breaks.some((b) => b.end == null);
+const copy = (s) => ({ ...s, breaks: s.breaks.map((b) => ({ ...b })) });
 
 const timeFmt = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
 const dayFmt = new Intl.DateTimeFormat('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
 
-const total = (from) => totalSince(shifts, from);
-
-// ---------- Дії ----------
+// ---------- Дії водія ----------
 $('mainBtn').addEventListener('click', () => {
-  const s = active();
+  const cur = active();
   const now = Date.now();
-  if (s) {
+  if (cur) {
     if (!confirm('Закінчити роботу?')) return;
+    const s = copy(cur);
     s.breaks.forEach((b) => { if (b.end == null) b.end = now; });
     s.end = now;
+    store.put(s);
   } else {
-    shifts.push({ id: now.toString(36), start: now, end: null, breaks: [], note: '' });
+    store.put({ id: newId(), start: now, end: null, breaks: [], note: '' });
   }
-  save(); render();
 });
 
 $('breakBtn').addEventListener('click', () => {
-  const s = active();
-  if (!s) return;
+  const cur = active();
+  if (!cur) return;
+  const s = copy(cur);
   const open = s.breaks.find((b) => b.end == null);
   if (open) open.end = Date.now();
   else s.breaks.push({ start: Date.now(), end: null });
-  save(); render();
+  store.put(s);
 });
 
 $('exportBtn').addEventListener('click', () => {
-  const rows = [['Дата', 'Початок', 'Кінець', 'Перерви (хв)', 'Робочий час (год)', 'Нотатка']];
-  for (const s of [...shifts].sort((a, b) => a.start - b.start)) {
-    if (s.end == null) continue;
-    rows.push([
-      new Date(s.start).toLocaleDateString('uk-UA'),
-      timeFmt.format(s.start),
-      timeFmt.format(s.end),
-      Math.round(breakMs(s) / 60000),
-      (workMs(s) / 3600000).toFixed(2).replace('.', ','),
-      s.note || '',
-    ]);
-  }
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\r\n');
-  const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: `zminy-${new Date().toISOString().slice(0, 10)}.csv` });
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadCsv(shiftsToCsv(shifts), `zminy-${new Date().toISOString().slice(0, 10)}.csv`);
 });
 
 // ---------- Редагування ----------
@@ -82,24 +105,25 @@ $('editForm').addEventListener('submit', (e) => {
   const action = e.submitter?.value;
   if (!editing) return;
   if (action === 'delete') {
-    if (confirm('Видалити цю зміну?')) shifts = shifts.filter((s) => s !== editing);
+    if (confirm('Видалити цю зміну?')) store.remove(editing.id);
   } else if (action === 'save') {
     const start = new Date($('eStart').value).getTime();
     const end = new Date($('eEnd').value).getTime();
     const brk = Math.max(0, Number($('eBreak').value) || 0) * 60000;
     if (!(end > start)) { e.preventDefault(); $('eErr').textContent = 'Кінець має бути пізніше за початок.'; return; }
     if (brk >= end - start) { e.preventDefault(); $('eErr').textContent = 'Перерви довші за саму зміну.'; return; }
-    editing.start = start;
-    editing.end = end;
     // Перерви зберігаємо як один блок — точні межі після редагування не важливі
-    editing.breaks = brk ? [{ start: end - brk, end }] : [];
-    editing.note = $('eNote').value.trim();
+    store.put({
+      ...editing,
+      start, end,
+      breaks: brk ? [{ start: end - brk, end }] : [],
+      note: $('eNote').value.trim(),
+    });
   }
   editing = null;
-  save(); render();
 });
 
-// ---------- Відображення ----------
+// ---------- Відображення водія ----------
 function renderNow() {
   const s = active();
   const now = Date.now();
@@ -122,9 +146,9 @@ function renderNow() {
     brk.textContent = paused ? '▶ Продовжити' : '☕ Перерва';
     brk.classList.toggle('active', paused);
   }
-  $('sToday').textContent = hm(total(startOfDay()));
-  $('sWeek').textContent = hm(total(startOfWeek()));
-  $('sMonth').textContent = hm(total(startOfMonth()));
+  $('sToday').textContent = hm(totalSince(shifts, startOfDay()));
+  $('sWeek').textContent = hm(totalSince(shifts, startOfWeek()));
+  $('sMonth').textContent = hm(totalSince(shifts, startOfMonth()));
 }
 
 function renderHistory() {
@@ -162,9 +186,144 @@ function renderHistory() {
 
 function render() { renderNow(); renderHistory(); }
 
-render();
-setInterval(renderNow, 1000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+function setShifts(list) {
+  shifts = list;
+  render();
+}
+
+// ---------- Екрани ----------
+function show(view) {
+  $('loading').hidden = view !== 'loading';
+  $('authView').hidden = view !== 'auth';
+  $('mainView').hidden = view !== 'main';
+}
+
+function setTab(tab) {
+  for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('on', b.dataset.tab === tab);
+  $('driverView').hidden = tab !== 'driver';
+  $('managerView').hidden = tab !== 'manager';
+  if (tab === 'manager') startManager(profile);
+  else stopManager();
+}
+for (const b of document.querySelectorAll('#tabs button')) b.addEventListener('click', () => setTab(b.dataset.tab));
+
+function updateModeNote() {
+  if (!profile) {
+    $('modeNote').textContent = 'Дані зберігаються лише на цьому пристрої.';
+  } else {
+    $('modeNote').textContent = navigator.onLine
+      ? 'Дані синхронізуються з хмарою.'
+      : 'Без інтернету: зміни збережено, синхронізуються пізніше.';
+  }
+}
+addEventListener('online', updateModeNote);
+addEventListener('offline', updateModeNote);
+
+// ---------- Вхід ----------
+let authMode = 'login';
+function setAuthMode(m) {
+  authMode = m;
+  for (const b of document.querySelectorAll('[data-auth]')) b.classList.toggle('on', b.dataset.auth === m);
+  $('nameRow').hidden = m !== 'register';
+  $('authSubmit').textContent = m === 'register' ? 'Зареєструватися' : 'Увійти';
+  $('aPass').autocomplete = m === 'register' ? 'new-password' : 'current-password';
+  $('aErr').textContent = '';
+}
+for (const b of document.querySelectorAll('[data-auth]')) b.addEventListener('click', () => setAuthMode(b.dataset.auth));
+
+$('authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = $('aName').value.trim();
+  const email = $('aEmail').value.trim();
+  const pass = $('aPass').value;
+  if (authMode === 'register' && !name) { $('aErr').textContent = 'Введи ім\'я — його побачить керівник.'; return; }
+  $('authSubmit').disabled = true;
+  $('aErr').textContent = '';
+  try {
+    if (authMode === 'register') await cloud.register(name, email, pass);
+    else await cloud.signIn(email, pass);
+  } catch (err) {
+    $('aErr').textContent = cloud.authError(err);
+  } finally {
+    $('authSubmit').disabled = false;
+  }
+});
+
+$('googleBtn').addEventListener('click', () => {
+  cloud.googleSignIn().catch((err) => { $('aErr').textContent = cloud.authError(err); });
+});
+
+$('resetBtn').addEventListener('click', async () => {
+  const email = $('aEmail').value.trim();
+  if (!email) { $('aErr').textContent = 'Введи email, і ми надішлемо посилання для зміни пароля.'; return; }
+  try {
+    await cloud.resetPassword(email);
+    $('aErr').textContent = 'Лист для зміни пароля надіслано на ' + email;
+  } catch (err) {
+    $('aErr').textContent = cloud.authError(err);
+  }
+});
+
+$('logoutBtn').addEventListener('click', () => {
+  if (confirm('Вийти з облікового запису?')) cloud.logout();
+});
+
+// Зміни, записані на цьому пристрої до входу, переносимо в обліковий запис
+function offerMigration() {
+  const local = loadLocal();
+  if (!local.length) return;
+  if (!confirm(`На цьому пристрої є ${local.length} змін(и), записаних без входу. Перенести їх у твій обліковий запис?`)) return;
+  for (const s of local) store.put({ ...s, id: newId() });
+  try { localStorage.removeItem(KEY); } catch { /* немає доступу */ }
+}
+
+function onProfile(p) {
+  store?.stop();
+  stopManager();
+  profile = p;
+  if (!p) {
+    store = null;
+    shifts = [];
+    $('userChip').hidden = true;
+    setAuthMode('login');
+    show('auth');
+    return;
+  }
+  $('userName').textContent = p.name;
+  $('userChip').hidden = false;
+  store = cloudStore(p, setShifts);
+  $('tabs').hidden = p.role !== 'manager';
+  setTab('driver');
+  show('main');
+  updateModeNote();
+  if (p.error) showCloudError(p.error);
+  offerMigration();
+}
+
+// ---------- Старт ----------
+async function boot() {
+  if (!cloud.cloudEnabled) {
+    store = localStore(setShifts);
+    show('main');
+    updateModeNote();
+    return;
+  }
+  show('loading');
+  try {
+    await cloud.initCloud();
+    cloud.onUser(onProfile);
+  } catch (e) {
+    // SDK не завантажився (напр., перший запуск без інтернету) — працюємо локально
+    console.error(e);
+    store = localStore(setShifts);
+    show('main');
+    $('modeNote').textContent = '⚠ Не вдалося підключитися до хмари — дані зберігаються на цьому пристрої.';
+  }
+}
+
+boot();
+setInterval(() => { if (store) renderNow(); }, 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && store) render(); });
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

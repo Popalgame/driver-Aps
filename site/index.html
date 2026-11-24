@@ -13,31 +13,85 @@
 <body>
   <header class="top">
     <h1>Час у дорозі</h1>
+    <div id="userChip" class="user" hidden>
+      <span id="userName"></span>
+      <button id="logoutBtn" class="btn small">Вийти</button>
+    </div>
   </header>
 
-  <main>
-    <section class="card now" aria-live="polite">
-      <div class="status" id="status">Не на зміні</div>
-      <div class="timer" id="timer">00:00:00</div>
-      <div class="sub" id="sub">&nbsp;</div>
-      <button id="mainBtn" class="btn big start">▶ Почати роботу</button>
-      <button id="breakBtn" class="btn secondary" hidden>☕ Перерва</button>
-    </section>
+  <p id="loading" class="muted center">Завантаження…</p>
 
-    <section class="stats">
-      <div class="stat"><span>Сьогодні</span><b id="sToday">0 год 00 хв</b></div>
-      <div class="stat"><span>Цей тиждень</span><b id="sWeek">0 год 00 хв</b></div>
-      <div class="stat"><span>Цей місяць</span><b id="sMonth">0 год 00 хв</b></div>
-    </section>
+  <!-- Вхід / реєстрація -->
+  <section id="authView" class="card" hidden>
+    <div class="seg" role="tablist">
+      <button type="button" data-auth="login" class="on">Вхід</button>
+      <button type="button" data-auth="register">Реєстрація</button>
+    </div>
+    <form id="authForm" novalidate>
+      <label id="nameRow" hidden>Ім'я та прізвище <input id="aName" autocomplete="name" maxlength="60"></label>
+      <label>Email <input id="aEmail" type="email" autocomplete="email" required></label>
+      <label>Пароль <input id="aPass" type="password" autocomplete="current-password" minlength="6" required></label>
+      <p id="aErr" class="err"></p>
+      <button id="authSubmit" class="btn big start" type="submit">Увійти</button>
+    </form>
+    <button id="googleBtn" class="btn secondary" type="button">Увійти через Google</button>
+    <button id="resetBtn" class="btn link" type="button">Забули пароль?</button>
+  </section>
 
-    <section class="card">
-      <div class="row">
-        <h2>Історія змін</h2>
-        <button id="exportBtn" class="btn small">⬇ CSV</button>
-      </div>
-      <ul id="history" class="history"></ul>
-      <p id="empty" class="muted">Ще немає жодної зміни.</p>
-    </section>
+  <main id="mainView" hidden>
+    <nav id="tabs" class="seg" hidden>
+      <button type="button" data-tab="driver" class="on">Мій час</button>
+      <button type="button" data-tab="manager">Водії</button>
+    </nav>
+
+    <div id="driverView">
+      <section class="card now" aria-live="polite">
+        <div class="status" id="status">Не на зміні</div>
+        <div class="timer" id="timer">00:00:00</div>
+        <div class="sub" id="sub">&nbsp;</div>
+        <button id="mainBtn" class="btn big start">▶ Почати роботу</button>
+        <button id="breakBtn" class="btn secondary" hidden>☕ Перерва</button>
+      </section>
+
+      <section class="stats">
+        <div class="stat"><span>Сьогодні</span><b id="sToday">0 год 00 хв</b></div>
+        <div class="stat"><span>Цей тиждень</span><b id="sWeek">0 год 00 хв</b></div>
+        <div class="stat"><span>Цей місяць</span><b id="sMonth">0 год 00 хв</b></div>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <h2>Історія змін</h2>
+          <button id="exportBtn" class="btn small">⬇ CSV</button>
+        </div>
+        <ul id="history" class="history"></ul>
+        <p id="empty" class="muted">Ще немає жодної зміни.</p>
+      </section>
+    </div>
+
+    <div id="managerView" hidden>
+      <section class="card">
+        <div class="seg small" id="period">
+          <button type="button" data-p="day" class="on">Сьогодні</button>
+          <button type="button" data-p="week">Тиждень</button>
+          <button type="button" data-p="month">Місяць</button>
+          <button type="button" data-p="custom">Період</button>
+        </div>
+        <div id="customRange" class="range" hidden>
+          <label>Від <input type="date" id="pFrom"></label>
+          <label>До <input type="date" id="pTo"></label>
+        </div>
+        <div class="row summary">
+          <span id="mSummary" class="muted"></span>
+          <button id="mExportBtn" class="btn small">⬇ CSV</button>
+        </div>
+      </section>
+      <ul id="drivers" class="drivers"></ul>
+      <p id="mEmpty" class="muted center" hidden>Ще немає жодного водія. Попроси водіїв зареєструватися в апці.</p>
+      <p id="mErr" class="err center"></p>
+    </div>
+
+    <p id="modeNote" class="muted center small-text"></p>
   </main>
 
   <dialog id="editDlg">
