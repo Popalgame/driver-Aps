@@ -1,4 +1,4 @@
-const CACHE = 'driver-time-v1';
+const CACHE = 'driver-time-v2';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
