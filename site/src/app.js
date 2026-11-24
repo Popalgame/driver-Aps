@@ -1,4 +1,4 @@
-'use strict';
+import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 
 // Модель: { id, start, end|null, breaks: [{start, end|null}], note }  (час у мс)
 const KEY = 'driver-shifts-v1';
@@ -16,46 +16,10 @@ function save() {
 const active = () => shifts.find((s) => s.end == null);
 const onBreak = (s) => s && s.breaks.some((b) => b.end == null);
 
-function breakMs(s, now = Date.now()) {
-  return s.breaks.reduce((sum, b) => sum + ((b.end ?? now) - b.start), 0);
-}
-function workMs(s, now = Date.now()) {
-  return Math.max(0, (s.end ?? now) - s.start - breakMs(s, now));
-}
-
-// Робочий час зміни, що припадає на інтервал [from, to)
-function workInRange(s, from, to, now = Date.now()) {
-  const a = Math.max(s.start, from);
-  const b = Math.min(s.end ?? now, to);
-  if (b <= a) return 0;
-  let ms = b - a;
-  for (const br of s.breaks) {
-    const x = Math.max(br.start, a);
-    const y = Math.min(br.end ?? now, b);
-    if (y > x) ms -= y - x;
-  }
-  return Math.max(0, ms);
-}
-
-const pad = (n) => String(n).padStart(2, '0');
-function clock(ms) {
-  const t = Math.floor(ms / 1000);
-  return `${pad(Math.floor(t / 3600))}:${pad(Math.floor(t / 60) % 60)}:${pad(t % 60)}`;
-}
-function hm(ms) {
-  const m = Math.round(ms / 60000);
-  return `${Math.floor(m / 60)} год ${pad(m % 60)} хв`;
-}
 const timeFmt = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
 const dayFmt = new Intl.DateTimeFormat('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
 
-function startOfDay(d = new Date()) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
-function startOfWeek() { const d = startOfDay(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; }
-function startOfMonth() { const d = startOfDay(); d.setDate(1); return d; }
-function total(from) {
-  const f = +from, t = Date.now() + 1;
-  return shifts.reduce((sum, s) => sum + workInRange(s, f, t), 0);
-}
+const total = (from) => totalSince(shifts, from);
 
 // ---------- Дії ----------
 $('mainBtn').addEventListener('click', () => {

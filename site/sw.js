@@ -1,5 +1,5 @@
-const CACHE = 'driver-time-v2';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon.svg'];
+const CACHE = 'driver-time-v3';
+const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
