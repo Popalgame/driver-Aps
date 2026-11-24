@@ -13,6 +13,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="style.css">
+  <!-- Завантажувати паралельно з основним кодом, а не по черзі -->
+  <link rel="modulepreload" href="src/app.js">
+  <link rel="modulepreload" href="src/cloud.js">
+  <link rel="modulepreload" href="src/firebase-config.js">
+  <link rel="modulepreload" href="vendor/firebase.js">
+  <link rel="modulepreload" href="src/install.js">
 </head>
 <body>
   <!-- Бічне меню (після входу): на ПК постійне, на телефоні — висувне -->
@@ -52,6 +58,7 @@
     <div class="hero-name">Driver-Aps</div>
     <div class="hero-sub">Облік робочого часу водіїв</div>
   </div>
+  <button id="loginInstall" class="btn install-link" type="button" hidden>📲 Встановити апку на телефон</button>
   <section id="authView" class="card" hidden>
     <h2 class="center">Вхід</h2>
     <form id="authForm" novalidate>
@@ -64,6 +71,7 @@
     <button id="resetBtn" class="btn link" type="button">Забули пароль?</button>
     <p class="muted center small-text">Немає облікового запису? Попроси керівника додати тебе.</p>
   </section>
+
 
   <!-- Обліковий запис ще не підтверджено або доступ закрито -->
   <section id="waitView" class="card center" hidden>
@@ -126,6 +134,18 @@
     </div>
 
     <div id="settingsView" class="settings" hidden>
+      <section class="card install-card">
+        <h2>📲 Встановити апку</h2>
+        <div id="instTodo">
+          <p class="muted small-text">Апка з'явиться на головному екрані з іконкою, відкриватиметься на весь екран і працюватиме без інтернету.</p>
+          <div class="inst-btns">
+            <button id="instBtn" class="btn start" type="button" hidden>Встановити</button>
+            <button id="instHow" class="btn" type="button">Як встановити</button>
+          </div>
+        </div>
+        <p id="instDone" class="msg ok" hidden>✓ Апку встановлено на цей пристрій.</p>
+      </section>
+
       <section class="card" id="sProfile">
         <h2>Профіль</h2>
         <form id="sNameForm" class="sform">
@@ -189,6 +209,50 @@
       </div>
     </form>
   </dialog>
+
+  <dialog id="installDlg" class="install-dlg">
+    <h3>📲 Як встановити Driver-Aps</h3>
+    <button id="dlgInstallBtn" class="btn big start" type="button" hidden>Встановити зараз</button>
+
+    <details data-os="ios">
+      <summary>iPhone / iPad</summary>
+      <p id="iosChromeNote" class="note" hidden>Ти в Chrome. Найпростіше — відкрий цю сторінку в <b>Safari</b>. У Chrome теж можна: кнопка «Поділитися» ⬆️ праворуч в адресному рядку → «На екран „Додому“».</p>
+      <ol class="steps">
+        <li>Відкрий <b>driver-aps.web.app</b> у <b>Safari</b>.</li>
+        <li>Натисни <b>«Поділитися»</b> <span class="ico-share" aria-hidden="true">⬆️</span> — квадрат зі стрілкою вгору внизу екрана.<br><small>У новому Safari спершу натисни <b>«•••»</b> внизу праворуч, потім «Поділитися».</small></li>
+        <li>Прокрути список униз і вибери <b>«На екран „Додому“»</b> <span aria-hidden="true">➕</span>.</li>
+        <li>Перевір, що увімкнено <b>«Відкрити як вебпрограму»</b> (якщо є), і натисни <b>«Додати»</b>.</li>
+        <li>Готово: іконка <b>Driver-Aps</b> з'явиться на головному екрані. Відкривай апку з неї.</li>
+      </ol>
+    </details>
+
+    <details data-os="android">
+      <summary>Android</summary>
+      <ol class="steps">
+        <li>Відкрий <b>driver-aps.web.app</b> у <b>Chrome</b>.</li>
+        <li>Натисни <b>⋮</b> (три крапки) угорі праворуч.</li>
+        <li>Вибери <b>«Встановити застосунок»</b> або <b>«Додати на головний екран»</b>.</li>
+        <li>Підтверди <b>«Встановити»</b> — іконка з'явиться на головному екрані.</li>
+      </ol>
+    </details>
+
+    <details data-os="desktop">
+      <summary>Комп'ютер (Chrome / Edge)</summary>
+      <ol class="steps">
+        <li>Відкрий <b>driver-aps.web.app</b> у Chrome або Edge.</li>
+        <li>В адресному рядку праворуч натисни значок <b>«Встановити»</b> (монітор зі стрілкою).</li>
+        <li>Підтверди <b>«Встановити»</b> — апка відкриватиметься в окремому вікні.</li>
+      </ol>
+    </details>
+
+    <div class="row"><span></span><button id="installClose" class="btn small" type="button">Закрити</button></div>
+  </dialog>
+
+  <!-- Нова версія апки -->
+  <div id="updateBar" class="update-bar" hidden>
+    <span>Доступна нова версія</span>
+    <button id="updateBtn" class="btn small start" type="button">Оновити</button>
+  </div>
 
   <dialog id="driverDlg">
     <form id="driverForm" novalidate>

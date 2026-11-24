@@ -41,46 +41,46 @@ export async function initCloud() {
 // cb викликається знову (лише при зміні ролі).
 let stopProfile = null;
 export function onUser(cb) {
-  return fb.onAuthStateChanged(auth, async (user) => {
+  return fb.onAuthStateChanged(auth, (user) => {
     stopProfile?.();
     stopProfile = null;
     if (!user) return cb(null);
     const fallback = { uid: user.uid, name: user.displayName || user.email, email: user.email, role: 'pending' };
-    try {
-      await ensureProfile(user);
-    } catch (e) {
-      console.error(e);
-      return cb({ ...fallback, error: e });
-    }
     let lastRole = null;
+    let creating = false;
+    // Профіль одразу з пам'яті телефона (без очікування сервера); сервер підтвердить у фоні.
+    // Якщо за 10 с відповіді немає зовсім (перший вхід без інтернету) — показуємо помилку.
+    const slow = setTimeout(() => { if (lastRole === null) cb({ ...fallback, error: new Error('offline') }); }, 10000);
     stopProfile = fb.onSnapshot(fb.doc(db, 'users', user.uid), (snap) => {
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        // Профілю ще немає: створюємо «очікує підтвердження», але лише коли сервер це підтвердив
+        if (snap.metadata.fromCache || creating) return;
+        creating = true;
+        createProfile(user).catch((e) => { console.error(e); cb({ ...fallback, error: e }); });
+        return;
+      }
+      clearTimeout(slow);
       const p = { uid: user.uid, ...snap.data() };
       if (p.role === lastRole) return;
       lastRole = p.role;
       cb(p);
     }, (e) => {
+      clearTimeout(slow);
       // Після виходу слухач теж отримує помилку доступу — її ігноруємо
       if (auth.currentUser?.uid === user.uid) cb({ ...fallback, error: e });
     });
   });
 }
 
-async function ensureProfile(user) {
-  const ref = fb.doc(db, 'users', user.uid);
-  const snap = await fb.getDoc(ref);
-  if (snap.exists()) return;
-  const profile = {
+function createProfile(user) {
+  return fb.setDoc(fb.doc(db, 'users', user.uid), {
     name: (user.displayName || (user.email || '').split('@')[0] || 'Водій').slice(0, 60),
     email: user.email || '',
     role: 'pending',
     createdAt: Date.now(),
-  };
-  await fb.setDoc(ref, profile);
+  });
 }
 
-// remember = true — лишатися в обліковому записі після закриття браузера;
-// false — вихід, коли браузер закрито (чужий / спільний пристрій).
 export async function signIn(email, password, remember = true) {
   await fb.setPersistence(auth, remember ? fb.browserLocalPersistence : fb.browserSessionPersistence);
   return fb.signInWithEmailAndPassword(auth, email, password);

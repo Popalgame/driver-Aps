@@ -1,5 +1,5 @@
-const CACHE = 'driver-time-v13';
-const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'src/report.js', 'src/cloud.js', 'src/manager.js', 'src/settings.js', 'src/firebase-config.js',
+const CACHE = 'driver-time-v14';
+const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'src/report.js', 'src/cloud.js', 'src/manager.js', 'src/settings.js', 'src/install.js', 'src/firebase-config.js',
   'vendor/firebase.js', 'manifest.webmanifest', 'icon.svg',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
@@ -15,18 +15,25 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Спершу мережа, без мережі — кеш (апка працює офлайн у дорозі)
+// Спершу кеш (миттєвий запуск, працює офлайн), а мережею у фоні оновлюємо кеш:
+// нова версія з'явиться при наступному відкритті (апка покаже «Оновити»).
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   // Лише власні файли апки. Запити до Firebase (вхід, база) — напряму в мережу.
   if (new URL(e.request.url).origin !== self.location.origin) return;
-  e.respondWith(
-    fetch(e.request)
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(e.request, { ignoreSearch: true });
+    const network = fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        if (res.ok) cache.put(e.request, res.clone());
         return res;
       })
-      .catch(() => caches.match(e.request))
-  );
+      .catch(() => null);
+    if (cached) {
+      e.waitUntil(network);
+      return cached;
+    }
+    return (await network) || (await cache.match('./')) || Response.error();
+  })());
 });

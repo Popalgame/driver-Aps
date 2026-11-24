@@ -3,6 +3,7 @@ import { shiftsToCsv, downloadCsv } from './report.js';
 import * as cloud from './cloud.js';
 import { startManager, stopManager } from './manager.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
+import { refresh as refreshInstall, isInstalled } from './install.js';
 
 // Зміна: { id, start, end|null, breaks: [{start, end|null}], note }  (час у мс)
 // У хмарі ще: uid, driverName, updatedAt.
@@ -199,6 +200,7 @@ function show(view) {
   $('loading').hidden = view !== 'loading';
   $('authView').hidden = view !== 'auth';
   $('authHero').hidden = view !== 'auth';
+  $('loginInstall').hidden = view !== 'auth' || isInstalled();
   document.body.classList.toggle('auth', view === 'auth');
   $('waitView').hidden = view !== 'wait';
   $('mainView').hidden = view !== 'main';
@@ -211,7 +213,7 @@ function setTab(tab) {
   $('driverView').hidden = tab !== 'driver';
   $('managerView').hidden = tab !== 'manager';
   $('settingsView').hidden = tab !== 'settings';
-  if (tab === 'settings') showSettings(profile);
+  if (tab === 'settings') { showSettings(profile); refreshInstall(); }
   if (tab === 'manager') startManager(profile);
   else stopManager();
 }
@@ -365,5 +367,11 @@ setInterval(() => { if (store) renderNow(); }, 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && store) render(); });
 
 if ('serviceWorker' in navigator) {
+  // Апка відкривається з кешу; коли у фоні завантажилась нова версія — пропонуємо оновити
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) $('updateBar').hidden = false;
+  });
+  $('updateBtn').addEventListener('click', () => location.reload());
 }
