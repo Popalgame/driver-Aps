@@ -19,6 +19,8 @@ for (const el of document.querySelectorAll('[data-version]')) el.textContent = V
 // Зміна: { id, start, end|null, breaks: [{start, end|null}], note }  (час у мс)
 // У хмарі ще: uid, driverName, updatedAt.
 const KEY = 'driver-shifts-v1';
+// Ролі з доступом до апки (решта — «очікує підтвердження» / «доступ закрито»)
+const ACTIVE = ['driver', 'manager', 'hr'];
 const $ = (id) => document.getElementById(id);
 
 let shifts = [];
@@ -65,7 +67,7 @@ const SHIFTS_CACHE = 'driver-shifts-cache-';
 
 function saveSession(p) {
   try {
-    if (p && (p.role === 'driver' || p.role === 'manager')) {
+    if (p && ACTIVE.includes(p.role)) {
       localStorage.setItem(SESSION_KEY, JSON.stringify({ uid: p.uid, name: p.name, email: p.email, role: p.role }));
     } else if (!p) {
       localStorage.removeItem(SESSION_KEY);
@@ -271,7 +273,7 @@ function setTab(tab) {
   $('calendarView').hidden = tab !== 'calendar';
   $('projectsView').hidden = tab !== 'projects';
   if (tab === 'calendar') startCalendar(profile); else stopCalendar();
-  if (tab === 'projects' && profile?.role === 'manager') startProjects(profile); else stopProjects();
+  if (tab === 'projects' && (profile?.role === 'manager' || profile?.role === 'hr')) startProjects(profile); else stopProjects();
   if (tab === 'mileage') startMileage(profile); else stopMileage();
   if (tab === 'settings') { showSettings(profile); refreshInstall(); }
   if (tab === 'manager') {
@@ -286,7 +288,17 @@ $('menuBtn').addEventListener('click', () => document.body.classList.add('menu-o
 $('scrim').addEventListener('click', closeMenu);
 addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 
-const ROLE_NAMES = { manager: 'Керівник', driver: 'Водій' };
+const ROLE_NAMES = { manager: 'Керівник', driver: 'Водій', hr: 'Кадри' };
+
+// Меню за роллю. Кадри: лише Календар, Проєкти (свої, перегляд) і Налаштування.
+const homeTab = (role) => (role === 'hr' ? 'calendar' : 'driver');
+function roleNav(role) {
+  const nav = (tab) => document.querySelector(`.side-nav [data-tab=${tab}]`);
+  nav('driver').hidden = role === 'hr';
+  nav('mileage').hidden = role === 'hr';
+  $('navManager').hidden = role !== 'manager';
+  $('navProjects').hidden = role !== 'manager' && role !== 'hr';
+}
 function fillUser(p) {
   $('userName').textContent = p ? p.name : 'Цей пристрій';
   $('sideRole').textContent = p ? (ROLE_NAMES[p.role] || '') : 'Без входу';
@@ -395,7 +407,7 @@ function onProfile(p) {
     return;
   }
   fillUser(p);
-  if (p.role !== 'driver' && p.role !== 'manager') {
+  if (!ACTIVE.includes(p.role)) {
     // Обліковий запис ще не підтверджено керівником або доступ закрито
     store = null;
     shifts = [];
@@ -410,14 +422,13 @@ function onProfile(p) {
   }
   store = cloudStore(p, cachingSetShifts(p.uid));
   for (const [op, arg] of pending) store[op](arg); // натискання, зроблені під час запуску
-  $('navManager').hidden = p.role !== 'manager';
-  $('navProjects').hidden = p.role !== 'manager';
+  roleNav(p.role);
   if (!sameUser) { startFeed(p); startInbox(p); }
-  if (!sameUser) setTab('driver');
+  if (!sameUser) setTab(homeTab(p.role));
   show('main');
   updateModeNote();
   if (p.error) showCloudError(p.error);
-  if (!sameUser) offerMigration();
+  if (!sameUser && p.role !== 'hr') offerMigration();
 }
 
 // ---------- Старт ----------
@@ -447,11 +458,10 @@ async function boot() {
     profile = { ...cached, optimistic: true };
     fillUser(profile);
     store = queuedStore();
-    $('navManager').hidden = cached.role !== 'manager';
-    $('navProjects').hidden = cached.role !== 'manager';
+    roleNav(cached.role);
     startFeed(cached);
     startInbox(cached);
-    setTab('driver');
+    setTab(homeTab(cached.role));
     show('main');
     setShifts(loadCachedShifts(cached.uid));
     $('modeNote').textContent = 'Синхронізація…';

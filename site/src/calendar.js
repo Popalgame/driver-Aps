@@ -85,6 +85,9 @@ function render() {
   renderUpcoming();
 }
 
+// Водії проєкту (без кадрів)
+const teamNames = (p) => (p.members || []).map((uid) => p.names?.[uid]).filter(Boolean);
+
 function renderProjects() {
   const box = $('calProjects');
   box.replaceChildren();
@@ -100,14 +103,16 @@ function renderProjects() {
   };
   if (projects.length > 1) box.append(chip('', 'Усі'));
   for (const p of projects) {
-    const names = Object.values(p.names || {}).join(', ');
+    const names = teamNames(p).join(', ');
     box.append(chip(projects.length > 1 ? p.id : '', p.name, COLORS[p.color] || COLORS[0], names));
   }
   // Хто на проєкті (коли вибрано один)
   const one = filter ? projById(filter) : projects.length === 1 ? projects[0] : null;
   if (one) {
-    const names = Object.values(one.names || {});
+    const names = teamNames(one);
     box.append(iconText(el('p', 'cal-team muted ih'), 'users', names.length ? names.join(', ') : 'Водіїв ще не додано'));
+    const hr = (one.hr || []).map((uid) => one.names?.[uid]).filter(Boolean);
+    if (hr.length) box.append(iconText(el('p', 'cal-team muted ih'), 'idcard', 'Кадри: ' + hr.join(', ')));
   }
 }
 

@@ -1,5 +1,7 @@
-// Вкладка «Проєкти» (керівник): створити проєкт, одразу додати до нього нових
-// або наявних водіїв, змінити, видалити. Водій бачить лише проєкти, до яких його додано.
+// Вкладка «Проєкти».
+//   Керівник: створити проєкт, одразу додати до нього нових або наявних водіїв і кадровиків,
+//             змінити, видалити.
+//   Кадри:    лише перегляд своїх проєктів — хто з водіїв на проєкті (лише імена).
 import * as cloud from './cloud.js';
 import * as feed from './feed.js';
 import { dayKey } from './mileage-calc.js';
@@ -11,14 +13,16 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-let projects = [], users = [], events = [];
+let projects = [], users = [], events = [], role = '';
 let unsub = null;
 let editing = null, color = 0;
 let extra = new Map(); // нові водії, створені з діалогу проєкту (ще не в списку users)
 
 const nameOf = (uid, p) => users.find((u) => u.id === uid)?.name || extra.get(uid) || p?.names?.[uid] || '';
-const drivers = () => users.filter((u) => u.role === 'driver' || u.role === 'disabled')
-  .sort((a, b) => (a.role === 'disabled') - (b.role === 'disabled') || (a.name || '').localeCompare(b.name || '', 'uk'));
+const byName = (a, b) => (a.role === 'disabled') - (b.role === 'disabled') || (a.name || '').localeCompare(b.name || '', 'uk');
+const drivers = () => users.filter((u) => (u.role === 'driver' || u.role === 'disabled') && u.kind !== 'hr').sort(byName);
+const hrStaff = () => users.filter((u) => u.kind === 'hr').sort(byName);
+const isManager = () => role === 'manager';
 
 function showError(e) {
   console.error(e);
@@ -31,7 +35,7 @@ export function startProjects() {
   unsub?.();
   $('projErr').textContent = '';
   unsub = feed.subscribe((st) => {
-    projects = st.projects; users = st.users; events = st.events;
+    projects = st.projects; users = st.users; events = st.events; role = st.user?.role || '';
     if (st.error) showError(st.error);
     render();
   });
@@ -42,13 +46,14 @@ export function stopProjects() {
 }
 
 function save(p) {
-  const names = Object.fromEntries(p.members.map((uid) => [uid, nameOf(uid, p).slice(0, 60)]));
+  const names = Object.fromEntries([...p.members, ...p.hr].map((uid) => [uid, nameOf(uid, p).slice(0, 60)]));
   return cloud.putProject({ ...p, names }).catch(showError);
 }
 
 function render() {
   if ($('projectsView').hidden) return;
   const today = dayKey(Date.now());
+  $('projAdd').hidden = !isManager();
   const list = $('projList');
   list.replaceChildren();
   for (const p of projects) {
@@ -66,6 +71,12 @@ function render() {
     }
     if (!p.members?.length) team.append(el('span', 'muted small-text', 'Водіїв ще не додано'));
     li.append(team);
+    if (p.hr?.length) {
+      const hr = el('div', 'proj-team proj-hr');
+      hr.append(iconText(el('span', 'muted small-text ih'), 'idcard', 'Кадри:'));
+      for (const uid of p.hr) hr.append(el('span', 'pchip hr', nameOf(uid, p) || '…'));
+      li.append(hr);
+    }
     const ahead = events.filter((e) => e.project === p.id && e.date >= today).length;
     const foot = el('div', 'row proj-foot');
     foot.append(iconText(el('span', 'badge ih'), 'calendar', ahead ? `Подій попереду: ${ahead}` : 'Подій попереду немає'));
@@ -79,13 +90,17 @@ function render() {
         save({ ...p, members: [...new Set([...(p.members || []), uid])] });
       }, `Новий водій · ${p.name}`);
     });
-    foot.append(add);
+    if (isManager()) foot.append(add);
     li.append(foot);
+    if (!isManager()) { li.classList.add('static'); list.append(li); continue; }
     li.addEventListener('click', () => openProject(p));
     li.addEventListener('keydown', (k) => { if (k.key === 'Enter' && k.target === li) openProject(p); });
     list.append(li);
   }
   $('projEmpty').hidden = projects.length > 0;
+  $('projEmptyText').textContent = isManager()
+    ? 'Ще немає жодного проєкту. Створи перший — наприклад, «Струмет», — і додай до нього водіїв.'
+    : 'Тебе ще не додано до жодного проєкту. Попроси керівника.';
 }
 
 // ---------- Діалог проєкту ----------
@@ -119,6 +134,9 @@ function openProject(p) {
   const ds = drivers();
   box.replaceChildren(...ds.map((u) => driverRow(u.id, u.name || u.email, !!p?.members?.includes(u.id), u.role === 'disabled')));
   $('projNoDrivers').hidden = ds.length > 0;
+  const hs = hrStaff();
+  $('projHr').replaceChildren(...hs.map((u) => driverRow(u.id, u.name || u.email, !!p?.hr?.includes(u.id), u.role === 'disabled')));
+  $('projNoHr').hidden = hs.length > 0;
   $('projDel').hidden = !p;
   $('projDlgErr').textContent = '';
   $('projDlg').showModal();
@@ -138,6 +156,15 @@ $('projNewDriver').addEventListener('click', () => {
   }, pname ? `Новий водій · ${pname}` : 'Новий водій');
 });
 
+// Новий кадровик прямо з проєкту
+$('projNewHr').addEventListener('click', () => {
+  openAddDriver((uid, name) => {
+    extra.set(uid, name);
+    $('projHr').prepend(driverRow(uid, name, true, false));
+    $('projNoHr').hidden = true;
+  }, 'Новий кадровик', 'hr');
+});
+
 $('projDel').addEventListener('click', async () => {
   if (!editing) return;
   const n = events.filter((e) => e.project === editing.id).length;
@@ -155,6 +182,7 @@ $('projForm').addEventListener('submit', (ev) => {
     $('projDlgErr').textContent = 'Проєкт з такою назвою вже є.'; return;
   }
   const members = [...new Set([...$('projDrivers').querySelectorAll('input:checked')].map((c) => c.value))];
-  save({ id: editing?.id || newId(), name, members, color, createdAt: editing?.createdAt || Date.now() });
+  const hr = [...new Set([...$('projHr').querySelectorAll('input:checked')].map((c) => c.value))];
+  save({ id: editing?.id || newId(), name, members, hr, color, createdAt: editing?.createdAt || Date.now() });
   $('projDlg').close();
 });

@@ -6,6 +6,7 @@ import { distanceIn } from './mileage-calc.js';
 import * as cloud from './cloud.js';
 import { openProfile, refreshProfile } from './profile.js';
 import { iconText } from './icons.js';
+import * as feed from './feed.js';
 
 const $ = (id) => document.getElementById(id);
 const DAY = 24 * 3600e3;
@@ -17,6 +18,7 @@ let shifts = [];
 let range = null;
 let stopUsers = null, stopShifts = null, timer = null;
 let mileage = [], stopMileageW = null;
+let unsubFeed = null;
 const kmFmt = new Intl.NumberFormat('uk-UA');
 
 const timeFmt = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
@@ -62,6 +64,7 @@ export function startManager() {
     $('pTo').value = isoDay(new Date());
   }
   stopUsers = cloud.watchUsers((list) => { users = list; render(); refreshProfile(); }, showError);
+  unsubFeed = feed.subscribe(() => { if (running) renderHr(); });
   subscribe();
   timer = setInterval(render, 30000);
 }
@@ -69,6 +72,7 @@ export function startManager() {
 export function stopManager() {
   if (!running) return;
   running = false;
+  unsubFeed?.(); unsubFeed = null;
   stopUsers?.(); stopShifts?.(); stopMileageW?.(); clearInterval(timer);
   stopMileageW = null;
   stopUsers = stopShifts = null;
@@ -106,8 +110,11 @@ function genPassword() {
 let onDriverCreated = null;
 
 // onCreated(uid, name) — напр., щоб одразу додати нового водія до проєкту
-export function openAddDriver(onCreated = null, title = 'Новий водій') {
+// role: 'driver' або 'hr' (кадровик)
+let newRole = 'driver';
+export function openAddDriver(onCreated = null, title = 'Новий водій', role = 'driver') {
   onDriverCreated = onCreated;
+  newRole = role;
   $('dTitle').textContent = title;
   $('driverForm').reset();
   $('dPass').value = genPassword();
@@ -121,6 +128,7 @@ export function openAddDriver(onCreated = null, title = 'Новий водій')
 }
 
 $('addDriverBtn').addEventListener('click', () => openAddDriver());
+$('addHrBtn').addEventListener('click', () => openAddDriver(null, 'Новий кадровик', 'hr'));
 $('dGen').addEventListener('click', () => { $('dPass').value = genPassword(); });
 $('dCancel').addEventListener('click', () => $('driverDlg').close());
 $('dCopy').addEventListener('click', async () => {
@@ -137,13 +145,14 @@ $('driverForm').addEventListener('submit', async (e) => {
   const name = $('dName').value.trim();
   const email = $('dEmail').value.trim().toLowerCase();
   const pass = $('dPass').value.trim();
-  if (!name) { $('dErr').textContent = 'Введи ім\'я водія.'; return; }
+  if (!name) { $('dErr').textContent = 'Введи ім\'я та прізвище.'; return; }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $('dErr').textContent = 'Перевір email.'; return; }
   if (pass.length < 6) { $('dErr').textContent = 'Пароль — щонайменше 6 символів.'; return; }
   $('dSubmit').disabled = true;
   $('dErr').textContent = 'Додаю…';
   try {
-    const uid = await cloud.createDriver(name, email, pass);
+    const uid = await cloud.createDriver(name, email, pass, newRole);
+    $('dDoneText').textContent = newRole === 'hr' ? 'Кадровика додано. Передай дані для входу:' : 'Водія додано. Передай йому дані для входу:';
     onDriverCreated?.(uid, name);
     $('dErr').textContent = '';
     $('dCreds').textContent = `Driver-Aps\n${APP_URL}\nEmail: ${email}\nПароль: ${pass}`;
@@ -187,9 +196,29 @@ function renderPending() {
 
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
 
+// Кадри: список, проєкти, доступ
+function renderHr() {
+  const hr = users.filter((u) => u.kind === 'hr').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'uk'));
+  $('hrEmpty').hidden = hr.length > 0;
+  $('hrList').replaceChildren(...hr.map((u) => {
+    const off = u.role === 'disabled';
+    const li = el('li', 'pend' + (off ? ' off' : ''));
+    const l = el('div');
+    const projs = feed.state.projects.filter((p) => (p.hr || []).includes(u.id)).map((p) => p.name);
+    l.append(el('div', 'dname', u.name || 'Без імені'), el('div', 'n', u.email || ''));
+    l.append(el('div', off ? 'badge off' : 'badge', off ? 'Доступ закрито' : projs.length ? 'Проєкти: ' + projs.join(', ') : 'Ще не додана до проєкту'));
+    const b = el('button', 'btn small ' + (off ? 'start' : 'danger'), off ? 'Відкрити доступ' : 'Закрити доступ');
+    b.type = 'button';
+    b.addEventListener('click', () => (off ? setRole(u.id, 'hr') : setRole(u.id, 'disabled', `Закрити доступ для «${u.name}»?`)));
+    li.append(l, b);
+    return li;
+  }));
+}
+
 function render() {
   if (!running || !range) return;
   renderPending();
+  renderHr();
   const now = Date.now();
   const rows = summarizeByDriver(shifts, users, range[0], range[1], now);
   const list = $('drivers');

@@ -12,7 +12,7 @@ export function summarizeByDriver(shifts, users, from, to, now = Date.now()) {
     if (!byUid.has(uid)) byUid.set(uid, { uid, name, email, role: '', total: 0, count: 0, active: null, onBreak: false, shifts: [] });
     return byUid.get(uid);
   };
-  for (const u of users) if (u.role === 'driver' || u.role === 'disabled') row(u.id ?? u.uid, u.name, u.email);
+  for (const u of users) if ((u.role === 'driver' || u.role === 'disabled') && u.kind !== 'hr') row(u.id ?? u.uid, u.name, u.email);
   for (const s of shifts) {
     const r = row(s.uid, s.driverName || '');
     const ms = workInRange(s, from, to, now);

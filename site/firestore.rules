@@ -4,7 +4,9 @@ rules_version = '2';
 //   pending  — увійшов, але ще не підтверджений керівником: нічого не записує.
 //   driver   — бачить і змінює лише свої зміни та своє ім'я.
 //   disabled — доступ закрито керівником: нічого не записує.
-//   manager  — бачить усіх водіїв і всі зміни (лише читання), додає водіїв,
+//   hr       — кадри: бачить лише календар і імена людей своїх проєктів
+//              (без змін, кілометражу й профілів водіїв). У профілі kind: 'hr'.
+//   manager  — бачить усіх водіїв і всі зміни (лише читання), додає водіїв і кадри,
 //              підтверджує й закриває доступ.
 // Реєстрації немає. Першого керівника призначають вручну в Firebase Console.
 service cloud.firestore {
@@ -26,13 +28,19 @@ service cloud.firestore {
       return signedIn() && myRole() in ['driver', 'manager'];
     }
 
+    // Хто працює з календарем проєктів
+    function isTeam() {
+      return signedIn() && myRole() in ['driver', 'manager', 'hr'];
+    }
+
     function validName(n) {
       return n is string && n.size() >= 1 && n.size() <= 60;
     }
 
     function validProfile(d) {
-      return d.keys().hasOnly(['name', 'email', 'role', 'createdAt'])
+      return d.keys().hasOnly(['name', 'email', 'role', 'kind', 'createdAt'])
         && validName(d.name)
+        && (!('kind' in d) || d.kind == 'hr')
         && d.email is string && d.email.size() <= 200
         && d.createdAt is number;
     }
@@ -45,10 +53,11 @@ service cloud.firestore {
         && validProfile(request.resource.data)
         && request.resource.data.role == 'pending';
 
-      // Керівник додає водія
+      // Керівник додає водія або кадровика (у кадровика kind: 'hr')
       allow create: if isManager() && request.auth.uid != uid
         && validProfile(request.resource.data)
-        && request.resource.data.role == 'driver';
+        && ((request.resource.data.role == 'driver' && !('kind' in request.resource.data))
+          || (request.resource.data.role == 'hr' && request.resource.data.get('kind', '') == 'hr'));
 
       // Свій профіль: лише ім'я
       allow update: if signedIn() && request.auth.uid == uid
@@ -60,7 +69,9 @@ service cloud.firestore {
       allow update: if isManager() && request.auth.uid != uid
         && resource.data.role != 'manager'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
-        && request.resource.data.role in ['driver', 'disabled']
+        && request.resource.data.role in ['driver', 'disabled', 'hr']
+        && (request.resource.data.role != 'hr' || resource.data.get('kind', '') == 'hr')
+        && (request.resource.data.role != 'driver' || resource.data.get('kind', '') != 'hr')
         && validName(request.resource.data.name);
     }
 
@@ -108,15 +119,20 @@ service cloud.firestore {
     // ---------- Проєкти й календар ----------
     // Проєкт створює керівник і додає до нього водіїв. Водій бачить лише свої проєкти
     // і події календаря цих проєктів; події додає, змінює й видаляє будь-хто з проєкту.
+    // Учасник проєкту: водій (members) або кадровик (hr)
+    function inProject(p) {
+      return request.auth.uid in p.members || request.auth.uid in p.get('hr', []);
+    }
+
     function isMember(pid) {
-      return isActive()
-        && request.auth.uid in get(/databases/$(database)/documents/projects/$(pid)).data.members;
+      return isTeam() && inProject(get(/databases/$(database)/documents/projects/$(pid)).data);
     }
 
     function validProject(d) {
-      return d.keys().hasOnly(['name', 'members', 'names', 'color', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['name', 'members', 'hr', 'names', 'color', 'createdAt', 'updatedAt'])
         && d.name is string && d.name.size() >= 1 && d.name.size() <= 40
         && d.members is list && d.members.size() <= 50
+        && (!('hr' in d) || (d.hr is list && d.hr.size() <= 20))
         && d.names is map
         && d.color is int && d.color >= 0 && d.color < 12
         && d.createdAt is number && d.updatedAt is number;
@@ -136,7 +152,7 @@ service cloud.firestore {
     }
 
     match /projects/{pid} {
-      allow read: if isManager() || (isActive() && request.auth.uid in resource.data.members);
+      allow read: if isManager() || (isTeam() && inProject(resource.data));
       allow create, update: if isManager() && validProject(request.resource.data);
       allow delete: if isManager();
     }

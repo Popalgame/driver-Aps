@@ -150,6 +150,15 @@
       </section>
       <ul id="drivers" class="drivers"></ul>
       <p id="mEmpty" class="muted center" hidden>Ще немає жодного водія. Натисни «Додати водія».</p>
+      <section id="hrBox" class="card hr-box">
+        <div class="row">
+          <h2 class="ih"><i data-i="idcard"></i> Кадри</h2>
+          <button id="addHrBtn" class="btn small" type="button"><i data-i="plus"></i> Кадровик</button>
+        </div>
+        <p class="muted small-text hr-note">Бачать лише календар і імена людей своїх проєктів — без годин і кілометражу. Додати до проєкту — у вкладці «Проєкти».</p>
+        <ul id="hrList" class="hr-list"></ul>
+        <p id="hrEmpty" class="muted small-text">Ще немає кадровиків.</p>
+      </section>
       <p id="mErr" class="err center"></p>
     </div>
 
@@ -226,7 +235,7 @@
     <div id="projectsView" hidden>
       <button id="projAdd" class="btn big start add" type="button"><i data-i="plus"></i> Новий проєкт</button>
       <ul id="projList" class="drivers"></ul>
-      <p id="projEmpty" class="muted center empty" hidden><span class="empty-ico"><i data-i="folder"></i></span>Ще немає жодного проєкту. Створи перший — наприклад, «Струмет», — і додай до нього водіїв.</p>
+      <p id="projEmpty" class="muted center empty" hidden><span class="empty-ico"><i data-i="folder"></i></span><span id="projEmptyText"></span></p>
       <p id="projErr" class="err center"></p>
     </div>
 
@@ -442,6 +451,12 @@
       </div>
       <div id="projDrivers" class="checks"></div>
       <p id="projNoDrivers" class="muted small-text" hidden>Ще немає водіїв — натисни «Новий водій».</p>
+      <div class="row field-row">
+        <div class="field-label">Кадри на проєкті</div>
+        <button id="projNewHr" class="btn small" type="button"><i data-i="plus"></i> Кадровик</button>
+      </div>
+      <div id="projHr" class="checks"></div>
+      <p id="projNoHr" class="muted small-text" hidden>Ще немає кадровиків.</p>
       <p id="projDlgErr" class="err"></p>
       <div class="row">
         <button id="projDel" class="btn danger small" type="button">Видалити</button>
@@ -506,7 +521,7 @@
         <label>Пароль <span class="pwrow"><input id="dPass" autocomplete="off" minlength="6" required><button id="dGen" class="btn small" type="button" title="Новий пароль" aria-label="Новий пароль"><i data-i="refresh"></i></button></span></label>
       </div>
       <div id="dDone" hidden>
-        <p class="ih ok-line"><i data-i="checkCircle"></i> Водія додано. Передай йому дані для входу:</p>
+        <p class="ih ok-line"><i data-i="checkCircle"></i> <span id="dDoneText">Водія додано. Передай йому дані для входу:</span></p>
         <pre id="dCreds" class="creds"></pre>
         <button id="dCopy" class="btn small" type="button">Скопіювати</button>
       </div>

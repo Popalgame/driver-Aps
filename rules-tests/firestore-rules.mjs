@@ -222,3 +222,50 @@ test('календар: події бачать і змінюють лише у�
   await assertSucceeds(setDoc(doc(m, 'events/e10'), event('mlesna', 'boss')));
   await assertSucceeds(deleteDoc(doc(m, 'events/e2')));
 });
+
+// ---------- Кадри ----------
+test('кадри: лише календар і проєкти, де вона є; без змін, кілометражу й профілів', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'users/olha'), { ...profile('Ольга', 'hr'), kind: 'hr' });
+    await setDoc(doc(db, 'projects/strumet'), project(['alice', 'bob'], { hr: ['olha'] }));
+    await setDoc(doc(db, 'projects/mlesna'), project(['gone'], { name: 'Млешна' }));
+    await setDoc(doc(db, 'events/e1'), event('strumet', 'alice'));
+    await setDoc(doc(db, 'events/e2'), event('mlesna', 'boss'));
+    await setDoc(doc(db, 'mileage/m1'), { uid: 'alice', type: 'odo', at: 1, km: 100, liters: null, amount: null, note: '', updatedAt: 1 });
+  });
+  const h = as('olha');
+  await assertSucceeds(getDoc(doc(h, 'projects/strumet')));
+  await assertSucceeds(getDocs(query(collection(h, 'projects'), where('hr', 'array-contains', 'olha'))));
+  await assertFails(getDoc(doc(h, 'projects/mlesna')));
+  await assertSucceeds(getDocs(query(collection(h, 'events'), where('project', '==', 'strumet'))));
+  await assertFails(getDocs(query(collection(h, 'events'), where('project', '==', 'mlesna'))));
+  await assertSucceeds(setDoc(doc(h, 'events/med'), event('strumet', 'olha', { title: 'Медкомісія', people: 3 })));
+  await assertSucceeds(updateDoc(doc(h, 'events/e1'), { note: 'Взяти паспорт', editedBy: 'olha', editedByName: 'Ольга', updatedAt: 5 }));
+  // нічого зайвого
+  await assertFails(getDoc(doc(h, 'users/alice')));
+  await assertFails(getDocs(collection(h, 'users')));
+  await assertFails(getDoc(doc(h, 'shifts/s-alice')));
+  await assertFails(getDoc(doc(h, 'mileage/m1')));
+  await assertFails(getDocs(query(collection(h, 'mileage'), where('uid', '==', 'alice'))));
+  await assertFails(setDoc(doc(h, 'shifts/x'), shift('olha')));
+  await assertFails(updateDoc(doc(h, 'projects/strumet'), { members: ['alice'] }));
+  await assertFails(updateDoc(doc(h, 'users/olha'), { role: 'manager' }));
+  // водій бачить проєкт, де є кадровик
+  await assertSucceeds(getDoc(doc(as('alice'), 'projects/strumet')));
+});
+
+test('кадри: створює й вимикає лише керівник; з водія кадровика не зробити', async () => {
+  const m = as('boss');
+  await assertSucceeds(setDoc(doc(m, 'users/hr1'), { ...profile('Ольга', 'hr'), kind: 'hr' }));
+  await assertFails(setDoc(doc(m, 'users/hr2'), profile('Без kind', 'hr')));
+  await assertFails(setDoc(doc(m, 'users/hr3'), { ...profile('Водій з kind', 'driver'), kind: 'hr' }));
+  await assertSucceeds(updateDoc(doc(m, 'users/hr1'), { role: 'disabled' }));
+  await assertFails(updateDoc(doc(m, 'users/hr1'), { role: 'driver' }));
+  await assertSucceeds(updateDoc(doc(m, 'users/hr1'), { role: 'hr' }));
+  await assertFails(updateDoc(doc(m, 'users/alice'), { role: 'hr' }));
+  await assertFails(updateDoc(doc(m, 'users/hr1'), { kind: null }));
+  // pending не може сам стати кадровиком
+  await assertFails(updateDoc(doc(as('newbie'), 'users/newbie'), { role: 'hr' }));
+  await assertFails(setDoc(doc(as('x'), 'users/x'), { ...profile('X', 'hr'), kind: 'hr' }));
+});

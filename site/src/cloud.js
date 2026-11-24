@@ -116,7 +116,8 @@ export const logout = () => fb.signOut(auth);
 
 // Створює обліковий запис водія. Окремий екземпляр Firebase (у пам'яті),
 // щоб керівник не вийшов зі свого облікового запису.
-export async function createDriver(name, email, password) {
+// role: 'driver' або 'hr' (кадри; у профілі ще kind: 'hr')
+export async function createDriver(name, email, password, role = 'driver') {
   await ready;
   const sec = fb.initializeApp(config, 'add-driver-' + Date.now());
   try {
@@ -126,7 +127,9 @@ export async function createDriver(name, email, password) {
     await fb.updateProfile(user, { displayName: name });
     await fb.signOut(secAuth);
     // Профіль записує керівник (правила дозволяють йому лише роль 'driver')
-    await fb.setDoc(fb.doc(db, 'users', user.uid), { name, email, role: 'driver', createdAt: Date.now() });
+    const prof = { name, email, role, createdAt: Date.now() };
+    if (role === 'hr') prof.kind = 'hr';
+    await fb.setDoc(fb.doc(db, 'users', user.uid), prof);
     return user.uid;
   } finally {
     await fb.deleteApp(sec);
@@ -232,11 +235,11 @@ function watchWhenReady(make) {
   return () => { cancelled = true; stop?.(); };
 }
 
-// Керівник — усі проєкти; водій — лише ті, де він учасник
-export function watchProjects(uid, all, cb, onError) {
+// Керівник — усі проєкти; водій — ті, де він у members; кадри — де вона в hr
+export function watchProjects(uid, role, cb, onError) {
   return watchWhenReady(() => {
     const col = fb.collection(db, 'projects');
-    const q = all ? col : fb.query(col, fb.where('members', 'array-contains', uid));
+    const q = role === 'manager' ? col : fb.query(col, fb.where(role === 'hr' ? 'hr' : 'members', 'array-contains', uid));
     return fb.onSnapshot(q, (snap) => cb(snap.docs.map(fromDoc)), onError);
   });
 }

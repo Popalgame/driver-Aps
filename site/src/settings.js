@@ -30,7 +30,7 @@ let profile = null;
 let onNameChanged = () => {};
 export function onProfileName(cb) { onNameChanged = cb; }
 
-const ROLE_NAMES = { manager: 'керівник', driver: 'водій' };
+const ROLE_NAMES = { manager: 'керівник', driver: 'водій', hr: 'кадри' };
 
 function msg(id, text, ok) {
   $(id).textContent = text;
