@@ -1,8 +1,8 @@
-// Спільні дані після входу: проєкти, події календаря, (керівнику) користувачі.
+// Спільні дані після входу: проєкти, події календаря, оголошення, (керівнику) користувачі.
 // Один набір підписок на всю апку — їх використовують календар, проєкти і сповіщення.
 import * as cloud from './cloud.js';
 
-export const state = { user: null, projects: [], events: [], users: [], error: null, loaded: false };
+export const state = { user: null, projects: [], events: [], users: [], notices: [], error: null, loaded: false };
 const subs = new Set();
 let stops = [], stopEvents = null, eventsFor = '';
 
@@ -34,6 +34,8 @@ export function startFeed(profile) {
     emit();
   }, fail));
   if (manager) stops.push(cloud.watchUsers((list) => { state.users = list; emit(); }, fail));
+  // Оголошення: помилку (напр., ще не оновлені правила) не показуємо в календарі — лише в консолі
+  stops.push(cloud.watchNotices(profile.uid, profile.role, (list) => { state.notices = list; emit(); }, (e) => console.error(e)));
   emit();
 }
 
@@ -41,7 +43,7 @@ export function stopFeed() {
   for (const s of stops) s();
   stopEvents?.();
   stops = []; stopEvents = null; eventsFor = '';
-  Object.assign(state, { user: null, projects: [], events: [], users: [], error: null, loaded: false });
+  Object.assign(state, { user: null, projects: [], events: [], users: [], notices: [], error: null, loaded: false });
   emit();
 }
 

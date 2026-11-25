@@ -2,7 +2,7 @@
 // додавання водіїв, підтвердження й закриття доступу.
 import { hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { summarizeByDriver } from './report.js';
-import { distanceIn } from './mileage-calc.js';
+import { distanceIn, hasOdoOn } from './mileage-calc.js';
 import * as cloud from './cloud.js';
 import { openProfile, refreshProfile } from './profile.js';
 import { iconText } from './icons.js';
@@ -260,6 +260,13 @@ function render() {
     const badge = el('div', cls, status);
     if (r.active && r.onBreak) iconText(badge, 'coffee', status);
     left.append(badge);
+    // Сьогодні працював, а кілометраж на початок дня не вписав
+    const today = +startOfDay(now);
+    if (!off && today >= range[0] && today < range[1]
+      && shifts.some((s) => s.uid === r.uid && (s.start >= today || s.end == null))
+      && !hasOdoOn(mileage.filter((e) => e.uid === r.uid), today)) {
+      left.append(iconText(el('div', 'badge warn ih'), 'gauge', 'Км за сьогодні не вписано'));
+    }
     const right = el('div', 'dtotal');
     right.append(el('b', '', hm(r.total)), el('span', 'muted', `${r.count} змін(и)`));
     const mine = mileage.filter((e) => e.uid === r.uid);

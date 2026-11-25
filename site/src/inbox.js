@@ -44,7 +44,7 @@ export function startInbox(profile) {
       const next = trackJoins(seen, st.projects.map((p) => p.id));
       if (JSON.stringify(next) !== JSON.stringify(seen)) { seen = next; save(); }
     }
-    items = buildItems({ uid, role: st.user.role, projects: st.projects, events: st.events, users: st.users, joined: seen.joined, since: seen.since });
+    items = buildItems({ uid, role: st.user.role, projects: st.projects, events: st.events, users: st.users, notices: st.notices, joined: seen.joined, since: seen.since });
     render();
   });
 }

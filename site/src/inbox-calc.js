@@ -1,5 +1,5 @@
 // Сповіщення — чиста логіка без DOM (tests/inbox.test.mjs).
-// Будуються з даних, які апка вже має: події календаря, проєкти, (керівнику) нові користувачі.
+// Будуються з даних, які апка вже має: події календаря, проєкти, оголошення, (керівнику) нові користувачі.
 //   ctx = { uid, role, projects, events, users, joined: {pid: мс}, since, now }
 // Елемент: { id, at, icon, text, sub, go: { tab, date?, project? } }
 import { dayKey } from './mileage-calc.js';
@@ -9,7 +9,7 @@ const DAY = 86400000;
 const dateFmt = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', day: 'numeric', month: 'long' });
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
-export function buildItems({ uid, role, projects = [], events = [], users = [], joined = {}, since = 0, now = Date.now() }) {
+export function buildItems({ uid, role, projects = [], events = [], users = [], notices = [], joined = {}, since = 0, now = Date.now() }) {
   const items = [];
   const proj = new Map(projects.map((p) => [p.id, p]));
   const today = dayKey(now);
@@ -52,6 +52,16 @@ export function buildItems({ uid, role, projects = [], events = [], users = [], 
     }
   }
 
+  // Оголошення мені: «прочитано» — з бази (кнопка «Прочитав»), а не з цього пристрою
+  for (const n of notices) {
+    if (!(n.recipients || []).includes(uid) || (n.until != null && n.until <= now)) continue;
+    items.push({
+      id: `note-${n.id}`, at: n.createdAt, icon: 'megaphone', read: !!n.read?.[uid],
+      text: `${n.important ? 'Важливе оголошення' : 'Оголошення'} від ${n.byName || 'керівника'}`,
+      sub: n.text.length > 120 ? n.text.slice(0, 117) + '…' : n.text, go: { notice: n.id },
+    });
+  }
+
   if (role !== 'manager') {
     for (const [pid, at] of Object.entries(joined)) {
       const p = proj.get(pid);
@@ -69,7 +79,9 @@ export function buildItems({ uid, role, projects = [], events = [], users = [], 
 }
 
 // Непрочитані: новіші за «прочитати всі» і не відкриті окремо
-export const isUnread = (item, seen) => item.at > (seen.readAll || 0) && !(seen.read || []).includes(item.id);
+export const isUnread = (item, seen) => ('read' in item
+  ? !item.read // оголошення: доки не натиснуто «Прочитав»
+  : item.at > (seen.readAll || 0) && !(seen.read || []).includes(item.id));
 
 // Нові проєкти водія (його додали) — фіксуємо момент, коли апка це побачила
 export function trackJoins(seen, projectIds, now = Date.now()) {

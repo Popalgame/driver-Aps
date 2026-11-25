@@ -65,6 +65,10 @@
       <h2>Сповіщення</h2>
       <button id="inboxReadAll" class="btn small" type="button">Прочитати всі</button>
     </div>
+    <div id="inboxNotice" class="inbox-actions" hidden>
+      <button id="ntNewBtn" class="btn small start" type="button"><i data-i="megaphone"></i> Нове оголошення</button>
+      <button id="ntSentBtn" class="btn small" type="button">Надіслані</button>
+    </div>
     <ul id="inboxList" class="inbox-list"></ul>
     <p id="inboxEmpty" class="muted center">Сповіщень немає.</p>
   </div>
@@ -101,6 +105,8 @@
   </section>
 
   <main id="mainView" hidden>
+    <!-- Оголошення від керівника / кадрів: висять угорі, поки не натиснеш «Прочитав» -->
+    <section id="noticeBar" class="notice-bar" aria-live="polite" hidden></section>
     <div id="driverView">
       <section class="card now" aria-live="polite">
         <div class="status" id="status">Не на зміні</div>
@@ -108,6 +114,7 @@
         <div class="sub" id="sub">&nbsp;</div>
         <button id="mainBtn" class="btn big start"><i data-i="play"></i> Почати роботу</button>
         <button id="breakBtn" class="btn secondary" hidden><i data-i="coffee"></i> Перерва</button>
+        <button id="odoRemind" class="odo-remind" type="button" hidden><i data-i="gauge"></i><span>Впиши кілометраж за сьогодні</span><b>Вписати ›</b></button>
       </section>
 
       <section class="stats">
@@ -554,6 +561,66 @@
         </span>
       </div>
     </form>
+  </dialog>
+
+  <!-- Кілометраж на початок дня: питаємо при першому «Почати роботу» за день -->
+  <dialog id="odoAskDlg" class="odo-ask">
+    <form id="odoAskForm" novalidate>
+      <h3 class="ih"><i data-i="gauge"></i> Кілометраж на початок дня</h3>
+      <p id="odoAskDate" class="muted small-text"></p>
+      <label>Скільки зараз на одометрі?
+        <input id="odoAskInput" class="odo-big" type="text" inputmode="numeric" autocomplete="off" placeholder="напр. 152 400">
+      </label>
+      <p id="odoAskPrev" class="muted small-text"></p>
+      <p id="odoAskErr" class="err"></p>
+      <button id="odoAskSave" class="btn big start" type="submit"><i data-i="play"></i> Зберегти і почати роботу</button>
+      <button id="odoAskLater" class="btn link" type="button">Пізніше</button>
+    </form>
+  </dialog>
+
+  <!-- Нове оголошення -->
+  <dialog id="ntDlg">
+    <form id="ntForm" novalidate>
+      <h3 class="ih"><i data-i="megaphone"></i> Нове оголошення</h3>
+      <label>Текст <textarea id="ntText" maxlength="500" rows="4" placeholder="напр. Будь ласка, не забувайте вписувати кілометраж на початку дня."></textarea></label>
+      <div class="field-label">Кому</div>
+      <div id="ntTo" class="nt-to">
+        <button type="button" data-to="all">Усім</button><button type="button" data-to="drivers">Водіям</button><button type="button" data-to="hr">Кадрам</button><button type="button" data-to="project">Проєкту</button><button type="button" data-to="user">Одній людині</button>
+      </div>
+      <label id="ntProjLabel" hidden>Проєкт <select id="ntProject"></select></label>
+      <label id="ntUserLabel" hidden>Кому саме <select id="ntUser"></select></label>
+      <p id="ntWho" class="nt-who"></p>
+      <label class="check ev-need"><input id="ntImp" type="checkbox"> <span><b>Важливе</b><small>Червоним і першим у списку</small></span></label>
+      <label>Показувати до <small class="muted">(необов'язково)</small> <input id="ntUntil" type="date"></label>
+      <p id="ntErr" class="err"></p>
+      <div class="row">
+        <span></span>
+        <span>
+          <button id="ntCancel" class="btn small" type="button">Скасувати</button>
+          <button id="ntSend" class="btn small start" type="submit">Надіслати</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Надіслані оголошення: хто прочитав -->
+  <dialog id="ntSentDlg" class="nt-sent-dlg">
+    <div class="row"><h3 class="ih"><i data-i="megaphone"></i> Оголошення</h3><button id="ntSentClose" class="btn small" type="button">Закрити</button></div>
+    <button id="ntSentNew" class="btn start nt-new" type="button"><i data-i="plus"></i> Нове оголошення</button>
+    <ul id="ntSentList" class="nt-sent"></ul>
+    <p id="ntSentEmpty" class="muted center">Ще немає жодного оголошення.</p>
+  </dialog>
+
+  <!-- Одне оголошення (зі сповіщень) -->
+  <dialog id="ntViewDlg">
+    <div id="ntViewBody"></div>
+    <div class="row">
+      <span id="ntViewState" class="muted small-text"></span>
+      <span>
+        <button id="ntViewClose" class="btn small" type="button">Закрити</button>
+        <button id="ntViewRead" class="btn small start" type="button"><i data-i="check"></i> Прочитав</button>
+      </span>
+    </div>
   </dialog>
 
   <script type="module" src="src/app.js"></script>

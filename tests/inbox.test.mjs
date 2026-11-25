@@ -47,3 +47,17 @@ test('керівник: нові користувачі чекають підт�
   assert.deepEqual(items.map((i) => i.id), ['pend-n']);
   assert.deepEqual(items[0].go, { tab: 'manager' });
 });
+
+test('оголошення в конвертику: непрочитане, доки не «Прочитав»', async () => {
+  const { buildItems, isUnread } = await import('../site/src/inbox-calc.js');
+  const notices = [
+    { id: 'n1', text: 'Вписуйте кілометраж', byName: 'Шеф', recipients: ['a'], read: {}, createdAt: 1000, until: null },
+    { id: 'n2', text: 'Прочитане', byName: 'Шеф', recipients: ['a'], read: { a: 5 }, createdAt: 900, until: null },
+    { id: 'n3', text: 'Не мені', byName: 'Шеф', recipients: ['b'], read: {}, createdAt: 900, until: null },
+  ];
+  const items = buildItems({ uid: 'a', role: 'driver', notices, now: 2000 });
+  assert.deepEqual(items.map((i) => i.id), ['note-n1', 'note-n2']);
+  const seen = { readAll: 999999 }; // «Прочитати всі» не позначає оголошення прочитаними
+  assert.equal(isUnread(items[0], seen), true);
+  assert.equal(isUnread(items[1], seen), false);
+});

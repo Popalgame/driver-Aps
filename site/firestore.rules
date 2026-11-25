@@ -195,5 +195,42 @@ service cloud.firestore {
         && (isManager() || isMember(resource.data.project));
       allow delete: if isManager() || isMember(resource.data.project);
     }
+
+    // ---------- Оголошення ----------
+    // Керівник пише будь-кому, кадри — лише людям свого проєкту. Отримувачі фіксуються
+    // при надсиланні; отримувач може лише поставити свою позначку «Прочитав».
+    function validNotice(d) {
+      return d.keys().hasOnly(['text', 'by', 'byName', 'to', 'target', 'recipients', 'names', 'important', 'until', 'createdAt', 'read'])
+        && d.text is string && d.text.size() >= 1 && d.text.size() <= 500
+        && d.by == request.auth.uid
+        && d.byName is string && d.byName.size() <= 60
+        && d.to in ['all', 'drivers', 'hr', 'project', 'user']
+        && (d.target == null || d.target is string)
+        && d.recipients is list && d.recipients.size() >= 1 && d.recipients.size() <= 100
+        && d.names is map
+        && d.important is bool
+        && (d.until == null || d.until is number)
+        && d.createdAt is number
+        && d.read is map && d.read.size() == 0;
+    }
+
+    function hrNoticeOk(d) {
+      let p = get(/databases/$(database)/documents/projects/$(d.target)).data;
+      return myRole() == 'hr' && d.to == 'project' && d.target is string
+        && request.auth.uid in p.get('hr', [])
+        && d.recipients.hasOnly(p.members.concat(p.get('hr', [])));
+    }
+
+    match /notices/{id} {
+      allow read: if isManager()
+        || (isTeam() && (request.auth.uid in resource.data.recipients || resource.data.by == request.auth.uid));
+      allow create: if validNotice(request.resource.data)
+        && (isManager() || hrNoticeOk(request.resource.data));
+      allow update: if isTeam() && request.auth.uid in resource.data.recipients
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read.diff(resource.data.read).affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.read[request.auth.uid] is number;
+      allow delete: if isManager() || (isTeam() && resource.data.by == request.auth.uid);
+    }
   }
 }

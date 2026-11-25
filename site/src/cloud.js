@@ -292,3 +292,35 @@ export async function removeEvent(id) {
   await ready;
   return fb.deleteDoc(fb.doc(db, 'events', id));
 }
+
+// ---------- Оголошення ----------
+// notices/{id} — див. notice-calc.js. Керівник бачить усі; інші — де вони отримувачі
+// (кадри — ще й ті, що написали самі).
+export function watchNotices(uid, role, cb, onError) {
+  return watchWhenReady(() => {
+    const col = fb.collection(db, 'notices');
+    if (role === 'manager') return fb.onSnapshot(col, (snap) => cb(snap.docs.map(fromDoc)), onError);
+    const parts = { to: [], by: [] };
+    const emit = () => { const m = new Map(); for (const n of [...parts.to, ...parts.by]) m.set(n.id, n); cb([...m.values()]); };
+    const stops = [fb.onSnapshot(fb.query(col, fb.where('recipients', 'array-contains', uid)), (snap) => { parts.to = snap.docs.map(fromDoc); emit(); }, onError)];
+    if (role === 'hr') stops.push(fb.onSnapshot(fb.query(col, fb.where('by', '==', uid)), (snap) => { parts.by = snap.docs.map(fromDoc); emit(); }, onError));
+    return () => stops.forEach((s) => s());
+  });
+}
+
+export async function putNotice(n) {
+  await ready;
+  const { id, ...data } = n;
+  return fb.setDoc(fb.doc(db, 'notices', id), data);
+}
+
+// «Прочитав» — отримувач змінює лише свою позначку
+export async function markNoticeRead(id, uid) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'notices', id), { [`read.${uid}`]: Date.now() });
+}
+
+export async function removeNotice(id) {
+  await ready;
+  return fb.deleteDoc(fb.doc(db, 'notices', id));
+}

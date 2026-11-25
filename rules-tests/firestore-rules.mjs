@@ -318,3 +318,46 @@ test('старі події (без полів завдання) водій мо
   await assertSucceeds(setDoc(doc(a, 'events/old'), { ...event('strumet', 'bob'), need: true, note: 'нове', editedBy: 'alice', editedByName: 'Аліса', editedAt: 5, updatedAt: 5 }));
   await assertSucceeds(updateDoc(doc(a, 'events/old'), { status: 'taken', driver: 'alice', driverName: 'Аліса', takenAt: 6, updatedAt: 6 }));
 });
+
+test('оголошення: пише керівник, кадри — лише своєму проєкту; отримувач лише «Прочитав»', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'users/olha'), { ...profile('Ольга', 'hr'), kind: 'hr' });
+    await setDoc(doc(db, 'projects/p1'), { name: 'Струмет', members: ['alice'], hr: ['olha'], names: {}, color: 0, createdAt: 1, updatedAt: 1 });
+    await setDoc(doc(db, 'projects/p2'), { name: 'Млешна', members: ['bob'], hr: [], names: {}, color: 1, createdAt: 1, updatedAt: 1 });
+  });
+  const n = (by, extra = {}) => ({
+    text: 'Не забувайте вписувати кілометраж', by, byName: 'Шеф', to: 'all', target: null,
+    recipients: ['alice', 'bob'], names: { alice: 'Аліса', bob: 'Боб' }, important: false, until: null,
+    createdAt: 1, read: {}, ...extra,
+  });
+  const m = as('boss');
+  await assertSucceeds(setDoc(doc(m, 'notices/n1'), n('boss')));
+  await assertFails(setDoc(doc(m, 'notices/bad1'), n('alice'))); // від чужого імені
+  await assertFails(setDoc(doc(m, 'notices/bad2'), n('boss', { text: '' })));
+  await assertFails(setDoc(doc(m, 'notices/bad3'), n('boss', { read: { alice: 1 } })));
+  // Водій не пише оголошень
+  await assertFails(setDoc(doc(as('alice'), 'notices/bad4'), n('alice')));
+  // Кадри: лише свій проєкт і лише його люди
+  const h = as('olha');
+  await assertSucceeds(setDoc(doc(h, 'notices/n2'), n('olha', { to: 'project', target: 'p1', recipients: ['alice'] })));
+  await assertFails(setDoc(doc(h, 'notices/bad5'), n('olha', { to: 'project', target: 'p1', recipients: ['alice', 'bob'] })));
+  await assertFails(setDoc(doc(h, 'notices/bad6'), n('olha', { to: 'project', target: 'p2', recipients: ['bob'] })));
+  await assertFails(setDoc(doc(h, 'notices/bad7'), n('olha')));
+  // Читання: отримувач, автор, керівник
+  const a = as('alice');
+  await assertSucceeds(getDocs(query(collection(a, 'notices'), where('recipients', 'array-contains', 'alice'))));
+  await assertSucceeds(getDocs(query(collection(h, 'notices'), where('by', '==', 'olha'))));
+  await assertSucceeds(getDocs(collection(m, 'notices')));
+  await assertFails(getDocs(collection(a, 'notices')));
+  await assertFails(getDoc(doc(as('gone'), 'notices/n1')));
+  // «Прочитав»: лише своя позначка
+  await assertSucceeds(updateDoc(doc(a, 'notices/n1'), { 'read.alice': 5 }));
+  await assertFails(updateDoc(doc(a, 'notices/n1'), { 'read.bob': 5 }));
+  await assertFails(updateDoc(doc(a, 'notices/n1'), { text: 'хак' }));
+  await assertFails(updateDoc(doc(as('olha'), 'notices/n1'), { 'read.olha': 5 })); // не отримувач
+  // Видалити: автор або керівник
+  await assertFails(deleteDoc(doc(a, 'notices/n1')));
+  await assertSucceeds(deleteDoc(doc(h, 'notices/n2')));
+  await assertSucceeds(deleteDoc(doc(m, 'notices/n1')));
+});

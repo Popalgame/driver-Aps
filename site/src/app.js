@@ -12,6 +12,8 @@ import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
 import { VERSION_LABEL } from './version.js';
 import { hydrateIcons, setIconText } from './icons.js';
+import { initOdo, startOdo, stopOdo, needsOdo, askOdo, renderRemind } from './odo.js';
+import { startNotices, stopNotices, openNotice } from './notices.js';
 
 hydrateIcons();
 
@@ -125,7 +127,9 @@ $('mainBtn').addEventListener('click', () => {
     s.end = now;
     store.put(s);
   } else {
-    store.put({ id: newId(), start: now, end: null, breaks: [], note: '' });
+    // Час початку — момент натискання (навіть якщо водій ще вписує кілометраж)
+    const begin = () => { if (!active()) store.put({ id: newId(), start: now, end: null, breaks: [], note: '' }); };
+    if (needsOdo()) askOdo(begin); else begin();
   }
 });
 
@@ -206,6 +210,7 @@ function renderNow() {
   $('sToday').textContent = hm(totalSince(shifts, startOfDay()));
   $('sWeek').textContent = hm(totalSince(shifts, startOfWeek()));
   $('sMonth').textContent = hm(totalSince(shifts, startOfMonth()));
+  renderRemind();
 }
 
 function renderHistory() {
@@ -398,7 +403,7 @@ function onProfile(p) {
 
   const pending = sameUser ? (store?.queued || []) : [];
   store?.stop();
-  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); stopInbox(); stopMyTasks(); stopFeed(); }
+  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); stopInbox(); stopMyTasks(); stopNotices(); stopOdo(); stopFeed(); }
   profile = p;
   if (!p) {
     store = null;
@@ -424,7 +429,7 @@ function onProfile(p) {
   store = cloudStore(p, cachingSetShifts(p.uid));
   for (const [op, arg] of pending) store[op](arg); // натискання, зроблені під час запуску
   roleNav(p.role);
-  if (!sameUser) { startFeed(p); startInbox(p); startMyTasks(); }
+  if (!sameUser) { startFeed(p); startInbox(p); startMyTasks(); startNotices(p); if (p.role !== 'hr') startOdo(p); }
   if (!sameUser) setTab(homeTab(p.role));
   show('main');
   updateModeNote();
@@ -433,11 +438,13 @@ function onProfile(p) {
 }
 
 // ---------- Старт ----------
+initOdo(() => shifts);
 // Ім'я змінено в налаштуваннях: оновити меню; нові зміни підписуються новим ім'ям
 onProfileName((p) => { fillUser(p); setUserName(p.name); });
 
 // Сповіщення: натиснув — перейти до події в календарі / до списку водіїв
 initInbox((go) => {
+  if (go.notice) { openNotice(go.notice); return; }
   setTab(go.tab);
   if (go.tab === 'manager') setStaff('drivers'); // нові користувачі — у «Водіях»
   if (go.tab === 'calendar') showDate(go.date || dayKeyNow(), go.project);
@@ -464,6 +471,8 @@ async function boot() {
     startFeed(cached);
     startInbox(cached);
     startMyTasks();
+    startNotices(cached);
+    if (cached.role !== 'hr') startOdo(cached);
     setTab(homeTab(cached.role));
     show('main');
     setShifts(loadCachedShifts(cached.uid));

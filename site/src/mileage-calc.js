@@ -101,3 +101,8 @@ export const drivenText = (r) => {
   const v = `${r.driven >= 0 ? '+' : '−'}${nf.format(Math.abs(r.driven))} км`;
   return r.span > 1 ? `${v} за ${r.span} ${r.span < 5 ? 'дні' : 'днів'}` : `${v} за день`;
 };
+
+// Чи вписано кілометраж за день (dayStart — північ). Питаємо один раз на календарний день:
+// при першому «Почати роботу», поки за сьогодні показника немає.
+export const hasOdoOn = (entries, dayStart) =>
+  entries.some((e) => e.type === 'odo' && e.at === dayStart && typeof e.km === 'number');
