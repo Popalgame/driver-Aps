@@ -58,8 +58,11 @@ shifts/{id}   { uid, driverName, start, end, breaks: [{start, end}], note, updat
 - `disabled` — доступ закрито керівником;
 - `manager` — бачить усіх (зміни лише читає), додає водіїв, підтверджує, закриває доступ.
 
-Після зміни правил встав `site/firestore.rules` у Firebase Console → Firestore → Rules → **Publish**
-(автопублікація правил потребує окремих дозволів сервісного акаунта).
+Правила (`site/firestore.rules`) публікуються самі разом з апкою при пуші в `main`
+(спершу CI проганяє `npm run test:rules`). Для цього сервісному акаунту з секрету
+`FIREBASE_SERVICE_ACCOUNT` потрібна роль **Service Usage Consumer** (Google Cloud → IAM).
+Якщо автопублікація не вдалась, у GitHub Actions буде попередження — тоді встав правила
+вручну: Firebase Console → Firestore → Rules → **Publish**.
 
 ## Підключення Firebase (вже зроблено для проєкту `driver-aps`)
 
@@ -67,7 +70,7 @@ shifts/{id}   { uid, driverName, start, end, breaks: [{start, end}], note, updat
 2. Firestore Database → Create database (`europe-central2`, production).
 3. Project settings → Your apps → Web → конфіг у `site/src/firebase-config.js`.
 4. Секрет `FIREBASE_SERVICE_ACCOUNT` у GitHub — публікація апки.
-5. Firestore → Rules — вміст `site/firestore.rules` → **Publish**.
+5. Google Cloud → IAM → сервісному акаунту з п. 4 — роль **Service Usage Consumer** (правила публікуються самі).
 
 ### Перший керівник
 

@@ -16,6 +16,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # Тести правил бази в емуляторі — погані правила не потраплять у Firebase
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm run test:rules
   deploy:
     needs: check
     # Публікація на https://driver-aps.web.app — вмикається, коли в репозиторії
@@ -29,6 +35,29 @@ jobs:
         run: echo "::notice::Секрет FIREBASE_SERVICE_ACCOUNT не задано — публікацію пропущено."
       - if: env.HAS_KEY == 'true'
         uses: actions/checkout@v4
+      - if: env.HAS_KEY == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - if: env.HAS_KEY == 'true'
+        run: npm ci
+      # Правила доступу до бази (site/firestore.rules) — публікуються самі, до нової версії апки.
+      # Сервісному акаунту потрібна роль «Service Usage Consumer» (див. README). Якщо дозволу
+      # немає — крок позначається попередженням, а апка однаково публікується.
+      - if: env.HAS_KEY == 'true'
+        name: Deploy Firestore rules
+        id: rules
+        continue-on-error: true
+        env:
+          SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SA_KEY" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx firebase deploy --only firestore:rules --project driver-aps --config site/firebase.json --non-interactive
+          rm -f "$RUNNER_TEMP/sa.json"
+      - if: env.HAS_KEY == 'true' && steps.rules.outcome == 'failure'
+        run: echo "::warning::Правила Firestore не опубліковано автоматично (бракує дозволу сервісного акаунта) — встав site/firestore.rules вручну."
       - if: env.HAS_KEY == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
