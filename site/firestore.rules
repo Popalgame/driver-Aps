@@ -200,15 +200,23 @@ service cloud.firestore {
           || (od.get('driver', null) == me && nd.get('driver', null) == null && nd.status == 'open')));
     }
 
+    // У машині 8 місць для пасажирів (9-те — водій). Старі події з більшою кількістю можна
+    // й далі редагувати й брати як завдання, поки кількість не змінюють.
+    function peopleFit(d) {
+      return d.people == null || d.people <= 8;
+    }
+
     match /events/{id} {
       allow read: if isManager() || isMember(resource.data.project);
       allow create: if validEvent(request.resource.data)
+        && peopleFit(request.resource.data)
         && request.resource.data.by == request.auth.uid
         && !('editedBy' in request.resource.data)
         && request.resource.data.get('status', 'open') == 'open'
         && request.resource.data.get('driver', null) == null
         && (isManager() || isMember(request.resource.data.project));
       allow update: if validEvent(request.resource.data)
+        && (peopleFit(request.resource.data) || request.resource.data.people == resource.data.people)
         && request.resource.data.project == resource.data.project
         && request.resource.data.by == resource.data.by
         && request.resource.data.createdAt == resource.data.createdAt

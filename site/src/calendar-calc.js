@@ -45,6 +45,9 @@ export function upcoming(events, todayKey, limit = 8) {
 export const keyToDate = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 
 // «5 чоловік» / «2 чоловіки» / «1 чоловік»
+// Місць у машині для пасажирів: 9-те — водій
+export const MAX_PEOPLE = 8;
+
 export function peopleText(n) {
   if (!n) return '';
   const t = n % 100, u = n % 10;

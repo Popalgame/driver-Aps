@@ -380,3 +380,21 @@ test('оголошення: пише керівник, кадри — лише �
   await assertSucceeds(deleteDoc(doc(h, 'notices/n2')));
   await assertSucceeds(deleteDoc(doc(m, 'notices/n1')));
 });
+
+test('подія: не більше 8 людей (9-те місце — водій); старі події з більшою кількістю лишаються', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'projects/p1'), { name: 'Струмет', members: ['alice'], hr: [], names: {}, color: 0, createdAt: 1, updatedAt: 1 });
+    await setDoc(doc(db, 'events/old'), { project: 'p1', date: '2026-12-01', time: '', title: 'Стара', people: 12, note: '', by: 'boss', byName: 'Шеф', createdAt: 1, updatedAt: 1 });
+  });
+  const ev = (by, people) => ({ project: 'p1', date: '2026-12-02', time: '07:00', title: 'Поїздка', people, note: '', by, byName: 'X', createdAt: 1, updatedAt: 1, need: true, status: 'open', driver: null });
+  for (const who of ['boss', 'alice']) {
+    const db = as(who);
+    await assertSucceeds(setDoc(doc(db, `events/ok-${who}`), ev(who, 8)));
+    await assertFails(setDoc(doc(db, `events/big-${who}`), ev(who, 9)));
+  }
+  const a = as('alice');
+  await assertSucceeds(updateDoc(doc(a, 'events/old'), { note: 'ок', updatedAt: 2 })); // кількість не міняли
+  await assertFails(updateDoc(doc(a, 'events/old'), { people: 13, updatedAt: 3 }));
+  await assertSucceeds(updateDoc(doc(a, 'events/old'), { people: 8, updatedAt: 4 }));
+});

@@ -6,7 +6,7 @@ import { iconText } from './icons.js';
 import { STATUS, statusOf, statusText, actions } from './tasks.js';
 import { startOfMonth } from './time.js';
 import { dayKey } from './mileage-calc.js';
-import { COLORS, monthGrid, eventsByDate, upcoming, keyToDate, peopleText } from './calendar-calc.js';
+import { COLORS, monthGrid, eventsByDate, upcoming, keyToDate, peopleText, MAX_PEOPLE } from './calendar-calc.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -271,7 +271,11 @@ $('evForm').addEventListener('submit', (ev) => {
   if (!project) return err('Вибери проєкт.');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return err('Вкажи дату.');
   if (!title) return err('Напиши, що за подія (напр. «Медкомісія»).');
-  if (people != null && !(Number.isInteger(people) && people >= 1 && people <= 999)) return err('Кількість людей — ціле число від 1 до 999.');
+  if (people != null && !(Number.isInteger(people) && people >= 1)) return err('Кількість людей — ціле число, наприклад 5.');
+  // У машині 8 місць для пасажирів (стара подія з більшою кількістю лишається, поки її не змінюють)
+  if (people > MAX_PEOPLE && people !== editing?.people) {
+    return err(`У машині лише ${MAX_PEOPLE} місць для пасажирів (9-те — водій). Якщо людей більше — додай ще одну поїздку.`);
+  }
   const now = Date.now();
   const e = {
     id: editing?.id || newId(),
