@@ -14,6 +14,7 @@ import { VERSION_LABEL } from './version.js';
 import { hydrateIcons, setIconText } from './icons.js';
 import { initOdo, startOdo, stopOdo, needsOdo, askOdo, renderRemind } from './odo.js';
 import { startNotices, stopNotices, openNotice } from './notices.js';
+import { initUpdates } from './update.js';
 
 hydrateIcons();
 
@@ -256,6 +257,7 @@ function setShifts(list) {
 
 // ---------- Екрани ----------
 function show(view) {
+  if (view !== 'loading') window.bootStarted?.(); // апка стартувала — сторож завантаження більше не потрібен
   document.body.classList.toggle('app-on', view === 'main');
   if (view !== 'main') closeMenu();
   $('loading').hidden = view !== 'loading';
@@ -483,7 +485,10 @@ async function boot() {
   }
   try {
     await cloud.initCloud();
-    cloud.onUser(onProfile);
+    // Помилка під час входу не повинна лишати «Завантаження…» назавжди — показуємо її і кнопку «Оновити апку»
+    cloud.onUser((p) => {
+      try { onProfile(p); } catch (e) { console.error(e); window.bootFail?.(e?.message || e); }
+    });
   } catch (e) {
     // SDK не завантажився (напр., перший запуск без інтернету) — працюємо локально
     console.error(e);
@@ -499,12 +504,5 @@ boot();
 setInterval(() => { if (store) renderNow(); }, 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && store) render(); });
 
-if ('serviceWorker' in navigator) {
-  // Апка відкривається з кешу; коли у фоні завантажилась нова версія — пропонуємо оновити
-  const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (hadController) $('updateBar').hidden = false;
-  });
-  $('updateBtn').addEventListener('click', () => location.reload());
-}
+// Оновлення апки: «Доступна нова версія» → вікно з прогресом завантаження → перезапуск
+initUpdates();

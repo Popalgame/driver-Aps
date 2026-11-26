@@ -869,3 +869,23 @@ html.big-text .pt-txt b { font-size: 19px; }
 html.big-text .pt-txt small { font-size: 15px; }
 .p-sec-head { margin: 0 0 12px; }
 .p-sec-head h2 { margin: 0; }
+
+/* Завантаження і «Оновити апку», якщо не стартувала */
+.boot { padding: 24px 16px; }
+.boot[hidden] { display: none; }
+.boot-msg { color: var(--text); margin: 8px 0; }
+#bootFix { margin-top: 8px; }
+
+/* Оновлення апки: прогрес */
+.upd-dlg { width: min(420px, calc(100vw - 32px)); }
+.upd-step { font-size: 16px; margin: 6px 0 12px; }
+.upd-row { display: flex; align-items: center; gap: 12px; }
+.upd-bar { flex: 1; height: 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+.upd-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-on)); transition: width .3s ease; }
+.upd-row b { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+.upd-dlg.done .upd-step { color: #86efac; font-weight: 700; }
+.upd-dlg.done .upd-fill { background: #22c55e; }
+.upd-dlg.failed .upd-step { color: var(--red); }
+.upd-dlg.failed .upd-fill { background: var(--red); }
+.update-bar { max-width: calc(100vw - 24px); }
+.update-bar span { overflow: hidden; text-overflow: ellipsis; }

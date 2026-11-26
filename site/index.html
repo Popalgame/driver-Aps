@@ -73,7 +73,44 @@
     <p id="inboxEmpty" class="muted center">Сповіщень немає.</p>
   </div>
 
-  <p id="loading" class="muted center">Завантаження…</p>
+  <div id="loading" class="center boot">
+    <p class="muted">Завантаження…</p>
+    <div id="bootFail" hidden>
+      <p class="boot-msg">Апка не запустилась. Найчастіше допомагає оновлення — дані й вхід збережуться.</p>
+      <p id="bootErr" class="muted small-text"></p>
+      <button id="bootFix" class="btn start" type="button">Оновити апку</button>
+    </div>
+  </div>
+  <!-- Захист від «вічного завантаження»: якщо апка не стартувала (помилка або змішалися файли
+       старої й нової версії), показуємо кнопку, що чистить кеш апки й перезавантажує.
+       Вхід і дані не зачіпаються. -->
+  <script>
+    (function () {
+      var started = false;
+      function fail(msg) {
+        var l = document.getElementById('loading');
+        if (started || !l || l.hidden) return;
+        document.getElementById('bootFail').hidden = false;
+        l.firstElementChild.hidden = true; // «Завантаження…»
+        if (msg) document.getElementById('bootErr').textContent = String(msg).slice(0, 200);
+      }
+      window.bootStarted = function () { started = true; };
+      window.bootFail = fail;
+      addEventListener('error', function (e) { fail(e.message); });
+      addEventListener('unhandledrejection', function (e) { fail(e.reason && e.reason.message); });
+      setTimeout(function () { fail(''); }, 15000);
+      document.getElementById('bootFix').addEventListener('click', function () {
+        this.disabled = true;
+        this.textContent = 'Очищую старі файли…';
+        try { sessionStorage.setItem('driver-upd-rescue', '1'); } catch (e) { /* немає доступу */ }
+        var done = function () { location.reload(); };
+        var jobs = [];
+        if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+        if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+        Promise.all(jobs).then(done, done);
+      });
+    })();
+  </script>
 
   <!-- Вхід (реєстрації немає — водіїв додає керівник) -->
   <div id="authHero" class="hero" hidden>
@@ -566,9 +603,25 @@
 
   <!-- Нова версія апки -->
   <div id="updateBar" class="update-bar" hidden>
-    <span>Доступна нова версія</span>
+    <span id="updateText">Доступна нова версія</span>
     <button id="updateBtn" class="btn small start" type="button">Оновити</button>
   </div>
+
+  <!-- Оновлення: смужка завантаження нової версії -->
+  <dialog id="updDlg" class="upd-dlg">
+    <h3 class="ih"><i data-i="refresh"></i> Оновлення апки</h3>
+    <p id="updStep" class="upd-step">Завантажую нову версію…</p>
+    <div class="upd-row"><div class="upd-bar"><div id="updFill" class="upd-fill"></div></div><b id="updPct">0%</b></div>
+    <p id="updCount" class="muted small-text"></p>
+    <p class="muted small-text">Вхід і всі дані зберігаються.</p>
+    <div class="row">
+      <span></span>
+      <span>
+        <button id="updClose" class="btn small" type="button" hidden>Закрити</button>
+        <button id="updRetry" class="btn small start" type="button" hidden>Спробувати ще</button>
+      </span>
+    </div>
+  </dialog>
 
   <dialog id="driverDlg">
     <form id="driverForm" novalidate>
