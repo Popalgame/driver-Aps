@@ -1,6 +1,6 @@
 {
   "name": "driver-aps",
-  "version": "0.1.14-alpha",
+  "version": "0.1.15-alpha",
   "description": "Driver-Aps — PWA для водіїв: облік робочого часу, перерви, підсумки.",
   "private": true,
   "type": "module",

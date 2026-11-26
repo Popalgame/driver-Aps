@@ -38,12 +38,18 @@ function card(e, projects, withBar) {
   return li;
 }
 
+// Підсумок для плитки «Завдання» на «Мій час»
+const tell = (c) => document.dispatchEvent(new CustomEvent('mytasks', { detail: c }));
+
 function render() {
   const box = $('taskBox');
-  if (!st?.user || st.user.role !== 'driver') { box.hidden = true; return; }
+  // Завдання — лише водіям (не працівникам і не кадрам)
+  if (!st?.user || st.user.role !== 'driver' || st.user.kind === 'emp') { box.hidden = true; tell(null); return; }
   const today = dayKey(Date.now());
   const m = myTasks(st.events.filter((e) => st.projects.some((p) => p.id === e.project)), st.user.uid, today, +startOfMonth());
-  box.hidden = !(m.active.length || m.free.length || m.done.length);
+  box.hidden = false;
+  $('taskNone').hidden = !!(m.active.length || m.free.length || m.done.length);
+  tell({ active: m.active.length, free: m.free.length, done: m.done.length });
   $('taskCount').textContent = m.active.length ? `моїх: ${m.active.length}` : '';
   $('taskActive').replaceChildren(...m.active.map((e) => card(e, st.projects, true)));
   $('taskFreeTitle').hidden = !m.free.length;

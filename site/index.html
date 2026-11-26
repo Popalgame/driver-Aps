@@ -162,8 +162,22 @@
         <div class="stat"><span>Цей місяць</span><b id="sMonth">0 год 00 хв</b></div>
       </section>
 
+      <!-- Розділи: «Завдання» і «Історія змін» — натиснув плитку, відкрився лише цей розділ -->
+      <nav id="myTabs" class="p-tabs my-tabs" aria-label="Розділи">
+        <button type="button" data-sec="tasks" data-short="Завдання" style="--t1:#a78bfa;--t2:#7c3aed">
+          <span class="pt-ico"><i data-i="userCheck"></i></span>
+          <span class="pt-txt"><b>Завдання</b><small id="mtTasks"></small></span>
+          <span class="pt-chev">›</span>
+        </button>
+        <button type="button" data-sec="hist" data-short="Історія змін" style="--t1:#60a5fa;--t2:#2563eb">
+          <span class="pt-ico"><i data-i="clock"></i></span>
+          <span class="pt-txt"><b>Історія змін</b><small id="mtHist"></small></span>
+          <span class="pt-chev">›</span>
+        </button>
+      </nav>
+
       <!-- Завдання водія: взяти → забрав людей → виконано -->
-      <section id="taskBox" class="card task-card" hidden>
+      <section id="taskBox" class="card task-card" data-msec="tasks" hidden>
         <div class="row"><h2 class="ih"><i data-i="userCheck"></i> Завдання</h2><span id="taskCount" class="muted small-text"></span></div>
         <ul id="taskActive" class="cal-list"></ul>
         <h3 id="taskFreeTitle" class="task-sub" hidden>Потрібен водій</h3>
@@ -172,9 +186,10 @@
           <summary id="taskDoneTitle"></summary>
           <ul id="taskDone" class="cal-list"></ul>
         </details>
+        <p id="taskNone" class="muted" hidden>Завдань поки немає. Коли кадрова чи керівник додасть «Потрібен водій», воно з'явиться тут.</p>
       </section>
 
-      <section class="card history-card">
+      <section class="card history-card" data-msec="hist">
         <div class="row">
           <h2>Історія змін</h2>
           <button id="exportBtn" class="btn small"><i data-i="download"></i> Excel</button>

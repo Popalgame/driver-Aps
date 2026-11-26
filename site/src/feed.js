@@ -19,7 +19,7 @@ export function subscribe(cb) {
 export function startFeed(profile) {
   stopFeed();
   const manager = profile.role === 'manager';
-  state.user = { uid: profile.uid, name: profile.name, role: profile.role };
+  state.user = { uid: profile.uid, name: profile.name, role: profile.role, kind: profile.kind || '' };
   stops.push(cloud.watchProjects(profile.uid, profile.role, (list) => {
     state.projects = list.sort((a, b) => a.name.localeCompare(b.name, 'uk'));
     state.error = null;

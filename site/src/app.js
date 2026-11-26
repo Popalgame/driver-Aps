@@ -251,7 +251,41 @@ function renderHistory() {
   }
 }
 
-function render() { renderNow(); renderHistory(); }
+function render() { renderNow(); renderHistory(); renderMyTabs(); }
+
+// ---------- «Мій час»: плитки «Завдання» / «Історія змін» ----------
+// На телефоні — розділи по одному (не розтягується); на широкому екрані видно обидва.
+const MY_SEC = 'driver-my-sec';
+let mySec = null, taskSum = null;
+try { mySec = localStorage.getItem(MY_SEC); } catch { /* немає доступу */ }
+function setMySec(v) {
+  mySec = v;
+  try { if (v) localStorage.setItem(MY_SEC, v); else localStorage.removeItem(MY_SEC); } catch { /* немає доступу */ }
+  renderMyTabs();
+}
+for (const b of document.querySelectorAll('#myTabs button')) {
+  b.addEventListener('click', () => setMySec(mySec === b.dataset.sec ? null : b.dataset.sec)); // ще раз — згорнути
+}
+document.addEventListener('mytasks', (e) => { taskSum = e.detail; renderMyTabs(); });
+function renderMyTabs() {
+  const tasksOn = !!taskSum; // плитка «Завдання» — лише водіям
+  if (mySec === 'tasks' && !tasksOn) mySec = null;
+  const tabs = $('myTabs');
+  tabs.querySelector('[data-sec=tasks]').hidden = !tasksOn;
+  tabs.classList.toggle('one', !tasksOn);
+  for (const b of tabs.querySelectorAll('button')) b.classList.toggle('on', b.dataset.sec === mySec);
+  tabs.classList.toggle('picked', !!mySec);
+  for (const n of document.querySelectorAll('#driverView [data-msec]')) n.classList.toggle('msec-off', n.dataset.msec !== mySec);
+  // Підписи на плитках
+  if (taskSum) {
+    const t = $('mtTasks');
+    t.textContent = taskSum.active ? `Моїх: ${taskSum.active}${taskSum.free ? ` · вільних: ${taskSum.free}` : ''}`
+      : taskSum.free ? `Потрібен водій: ${taskSum.free}` : taskSum.done ? `Виконано цього місяця: ${taskSum.done}` : 'Нових немає';
+    t.classList.toggle('warn', !!(taskSum.active || taskSum.free));
+  }
+  const last = shifts.filter((s) => s.end != null).sort((a, b) => b.start - a.start)[0];
+  $('mtHist').textContent = last ? `Остання: ${dayFmt.format(last.start).replace(/^\S+,\s*/, '')} · ${hm(workMs(last))}` : 'Ще немає змін';
+}
 
 function setShifts(list) {
   shifts = list;
