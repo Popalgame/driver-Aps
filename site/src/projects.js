@@ -65,7 +65,9 @@ function render() {
     head.append(el('span', 'proj-dot'), el('b', 'dname', p.name));
     li.append(head);
     // Водії проєкту — «чипами»; імена актуальні з профілів
-    const team = el('div', 'proj-team');
+    // Водії — так само, як «Кадри» і «Машини»: підпис і чипи
+    const team = el('div', 'proj-team proj-drv');
+    team.append(iconText(el('span', 'muted small-text ih'), 'users', 'Водії:'));
     for (const uid of p.members || []) {
       const off = users.find((u) => u.id === uid)?.role === 'disabled';
       team.append(el('span', 'pchip' + (off ? ' off' : ''), nameOf(uid, p) || '…'));
