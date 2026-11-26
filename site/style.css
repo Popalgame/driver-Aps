@@ -974,3 +974,8 @@ html.big-text .pt-txt small { font-size: 15px; }
 .p-car-how { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); }
 .p-car-how.today { color: #86efac; background: rgba(34,197,94,.12); }
 #sCar .p-car { margin: 0 0 14px; }
+
+/* «Мій час»: машина водія */
+.now-car:empty { display: none; }
+.now-car { display: flex; justify-content: center; margin: -4px 0 12px; }
+.now-car .p-car { margin: 0; justify-content: center; }

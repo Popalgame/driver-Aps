@@ -4,7 +4,8 @@ import { startManager, stopManager, setStaff } from './manager.js';
 import { closeProfile, editedMark } from './profile.js';
 import { startMileage, stopMileage } from './mileage.js';
 import { startCalendar, stopCalendar, showDate } from './calendar.js';
-import { startFeed, stopFeed, setUserName } from './feed.js';
+import { startFeed, stopFeed, setUserName, subscribe as onFeed } from './feed.js';
+import { driverCarEl } from './cars.js';
 import { initInbox, startInbox, stopInbox } from './inbox.js';
 import { startMyTasks, stopMyTasks } from './mytasks.js';
 import { startProjects, stopProjects } from './projects.js';
@@ -448,6 +449,14 @@ function onProfile(p) {
 
 // ---------- Старт ----------
 initOdo(() => shifts);
+
+// «Мій час»: на якій машині водій сьогодні (або востаннє / закріплена)
+function renderNowCar() {
+  const n = profile && profile.role !== 'hr' ? driverCarEl(profile.uid, carKmList, true) : null;
+  $('nowCar').replaceChildren(...(n ? [n] : []));
+}
+let carKmList = [];
+onFeed((st) => { carKmList = st.carKm; renderNowCar(); });
 // Ім'я змінено в налаштуваннях: оновити меню; нові зміни підписуються новим ім'ям
 onProfileName((p) => { fillUser(p); setUserName(p.name); });
 
