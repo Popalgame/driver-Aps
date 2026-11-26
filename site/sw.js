@@ -1,5 +1,5 @@
 // Назва кешу = версія апки (див. src/version.js)
-const CACHE = 'driver-aps-0.1.8';
+const CACHE = 'driver-aps-0.1.9';
 const FILES = ['./', 'index.html', 'style.css', 'src/app.js', 'src/time.js', 'src/report.js', 'src/cloud.js', 'src/manager.js', 'src/settings.js', 'src/install.js', 'src/version.js', 'src/profile.js', 'src/export.js', 'src/xlsx.js', 'src/mileage.js', 'src/mileage-calc.js', 'src/calendar.js', 'src/calendar-calc.js', 'src/projects.js', 'src/feed.js', 'src/inbox.js', 'src/inbox-calc.js', 'src/icons.js', 'src/tasks.js', 'src/mytasks.js', 'src/odo.js', 'src/shift-edit.js', 'src/update.js', 'src/photo.js', 'src/cars.js', 'src/car-calc.js', 'src/notices.js', 'src/notice-calc.js', 'src/firebase-config.js',
   'vendor/firebase.js', 'manifest.webmanifest', 'icon.svg',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];

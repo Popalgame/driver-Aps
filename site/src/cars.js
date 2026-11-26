@@ -41,10 +41,10 @@ export function stopCars() {
   if ($('carDlg').open) $('carDlg').close();
 }
 
-// Номерний знак (білий, із синьою смужкою UA)
+// Номерний знак (білий, із синьою смужкою PL)
 export function plate(text) {
   const p = el('span', 'plate');
-  p.append(el('span', 'plate-ua', 'UA'), el('b', '', text));
+  p.append(el('span', 'plate-ua', 'PL'), el('b', '', text));
   return p;
 }
 
