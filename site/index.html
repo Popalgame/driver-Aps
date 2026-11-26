@@ -273,6 +273,7 @@
         <div class="p-live">
           <div id="pTimer" class="p-timer">—</div>
           <div id="pTimerSub" class="muted small-text"></div>
+          <button id="pFixActive" class="btn small p-fix" type="button" hidden><i data-i="stop"></i> Закінчити зміну за водія</button>
         </div>
         <div class="p-actions">
           <button id="pCsv" class="btn small" type="button"><i data-i="download"></i> Excel</button>
@@ -327,6 +328,8 @@
 
       <section class="card">
         <div class="row"><h2>Історія змін</h2><span id="pCount" class="muted small-text"></span></div>
+        <button id="pAddShift" class="btn small p-add-shift" type="button"><i data-i="plus"></i> Додати зміну (забув натиснути «Почати»)</button>
+        <p class="muted small-text p-hint">Натисни на зміну, щоб виправити початок, кінець або перерви.</p>
         <ul id="pHistory" class="history"></ul>
         <p id="pEmptyHist" class="muted" hidden>Цей водій ще не мав жодної зміни.</p>
         <button id="pMore" class="btn link" type="button" hidden></button>
@@ -558,6 +561,29 @@
         <span>
           <button id="dCancel" class="btn small" type="button">Закрити</button>
           <button id="dSubmit" class="btn small start" type="submit">Додати</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Керівник виправляє зміну водія -->
+  <dialog id="msDlg">
+    <form id="msForm" novalidate>
+      <h3 id="msTitle" class="ih"><i data-i="pencil"></i> Зміна</h3>
+      <p id="msWho" class="muted small-text"></p>
+      <p id="msActive" class="ms-note" hidden>Водій ще на зміні. Якщо забув натиснути «Закінчити роботу», вкажи, коли він насправді закінчив.</p>
+      <label>Початок <input type="datetime-local" id="msStart"></label>
+      <label id="msEndLabel">Кінець <input type="datetime-local" id="msEnd"></label>
+      <label class="check ev-need" id="msOpenLabel" hidden><input id="msOpen" type="checkbox"> <span><b>Ще працює</b><small>Не закінчувати зміну, лише виправити початок</small></span></label>
+      <label>Перерви, хв <input type="number" id="msBreak" min="0" step="1" inputmode="numeric"></label>
+      <label>Нотатка <input type="text" id="msNote" maxlength="200" placeholder="напр. Забув натиснути «Закінчити»"></label>
+      <p id="msEdited" class="muted small-text"></p>
+      <p id="msErr" class="err"></p>
+      <div class="row">
+        <button id="msDel" class="btn danger small" type="button">Видалити</button>
+        <span>
+          <button id="msCancel" class="btn small" type="button">Скасувати</button>
+          <button class="btn small start" type="submit">Зберегти</button>
         </span>
       </div>
     </form>

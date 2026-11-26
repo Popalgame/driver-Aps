@@ -75,15 +75,34 @@ service cloud.firestore {
         && validName(request.resource.data.name);
     }
 
-    function validShift(d) {
-      return d.keys().hasOnly(['uid', 'driverName', 'start', 'end', 'breaks', 'note', 'updatedAt'])
-        && d.uid == request.auth.uid
+    // editedBy / editedByName / editedAt — зміну виправив керівник (водій забув «Почати» / «Закінчити»)
+    function validShiftData(d) {
+      return d.keys().hasOnly(['uid', 'driverName', 'start', 'end', 'breaks', 'note', 'updatedAt', 'editedBy', 'editedByName', 'editedAt'])
+        && d.uid is string
+        && (!('editedByName' in d) || (d.editedByName is string && d.editedByName.size() <= 60))
         && d.driverName is string && d.driverName.size() <= 60
         && d.start is number
         && (d.end == null || (d.end is number && d.end >= d.start))
         && d.breaks is list && d.breaks.size() <= 50
         && d.note is string && d.note.size() <= 200
         && d.updatedAt is number;
+    }
+
+    function validShift(d) {
+      return validShiftData(d) && d.uid == request.auth.uid;
+    }
+
+    // Позначку «виправив керівник» водій не змінює і не ставить сам
+    function editMarkKept() {
+      return request.resource.data.get('editedBy', null) == resource.data.get('editedBy', null)
+        && request.resource.data.get('editedAt', null) == resource.data.get('editedAt', null);
+    }
+
+    // Керівник: додати, виправити чи видалити зміну водія — з позначкою, хто й коли
+    function managerShiftOk(d) {
+      return isManager() && validShiftData(d)
+        && d.editedBy == request.auth.uid && d.editedAt is number
+        && exists(/databases/$(database)/documents/users/$(d.uid));
     }
 
     // Кілометраж (показник одометра зранку) і заправки (для заправки достатньо дати)
@@ -110,10 +129,14 @@ service cloud.firestore {
 
     match /shifts/{id} {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isManager());
-      allow create: if isActive() && validShift(request.resource.data);
+      allow create: if isActive() && validShift(request.resource.data)
+        && !('editedBy' in request.resource.data) && !('editedAt' in request.resource.data);
       allow update: if isActive() && resource.data.uid == request.auth.uid
-        && validShift(request.resource.data);
+        && validShift(request.resource.data) && editMarkKept();
       allow delete: if isActive() && resource.data.uid == request.auth.uid;
+      allow create: if managerShiftOk(request.resource.data);
+      allow update: if managerShiftOk(request.resource.data) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isManager();
     }
 
     // ---------- Проєкти й календар ----------

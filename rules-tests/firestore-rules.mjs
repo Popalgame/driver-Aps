@@ -98,13 +98,32 @@ test('водій не може сам стати керівником, але м
   await assertFails(setDoc(doc(db, 'users/friend'), profile('Друг', 'driver')));
 });
 
-test('керівник бачить усіх і всі зміни, але не змінює чужі зміни', async () => {
+test('керівник бачить усіх і всі зміни; чужу зміну виправляє лише з позначкою', async () => {
   const db = as('boss');
   await assertSucceeds(getDocs(collection(db, 'users')));
   await assertSucceeds(getDocs(query(collection(db, 'shifts'), where('start', '>=', 0), where('start', '<', 5000))));
   await assertSucceeds(getDoc(doc(db, 'shifts/s-bob')));
-  await assertFails(updateDoc(doc(db, 'shifts/s-bob'), { note: 'правка' }));
-  await assertFails(deleteDoc(doc(db, 'shifts/s-bob')));
+  await assertFails(updateDoc(doc(db, 'shifts/s-bob'), { note: 'правка' })); // без позначки — ні
+  const mark = { editedBy: 'boss', editedByName: 'Шеф', editedAt: 5000 };
+  await assertSucceeds(updateDoc(doc(db, 'shifts/s-bob'), { end: 2500, ...mark }));
+  await assertFails(updateDoc(doc(db, 'shifts/s-bob'), { ...mark, editedBy: 'alice' })); // від чужого імені
+  await assertFails(updateDoc(doc(db, 'shifts/s-bob'), { ...mark, uid: 'alice' })); // передати іншому
+  // Додати зміну за водія (забув «Почати»)
+  await assertSucceeds(setDoc(doc(db, 'shifts/added'), shift('alice', mark)));
+  await assertFails(setDoc(doc(db, 'shifts/added2'), shift('alice'))); // без позначки
+  await assertFails(setDoc(doc(db, 'shifts/added3'), shift('nobody', mark))); // немає такого користувача
+  await assertSucceeds(deleteDoc(doc(db, 'shifts/s-bob')));
+});
+
+test('водій не ставить і не прибирає позначку «виправив керівник»', async () => {
+  const a = as('alice');
+  const mark = { editedBy: 'boss', editedByName: 'Шеф', editedAt: 5000 };
+  await assertFails(setDoc(doc(a, 'shifts/fake'), shift('alice', mark)));
+  await assertFails(updateDoc(doc(a, 'shifts/s-alice'), mark));
+  await assertSucceeds(updateDoc(doc(as('boss'), 'shifts/s-alice'), { end: 2500, ...mark }));
+  await assertSucceeds(updateDoc(doc(a, 'shifts/s-alice'), { note: 'ок', updatedAt: 6000 })); // позначка лишається
+  await assertFails(updateDoc(doc(a, 'shifts/s-alice'), { editedBy: null, editedAt: null }));
+  await assertFails(updateDoc(doc(as('bob'), 'shifts/s-alice'), { end: 2600, ...mark }));
 });
 
 test('керівник додає водіїв, підтверджує й закриває доступ', async () => {

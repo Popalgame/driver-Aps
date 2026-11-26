@@ -7,6 +7,7 @@ import * as feed from './feed.js';
 import { STATUS, statusText } from './tasks.js';
 import { keyToDate, COLORS, peopleText } from './calendar-calc.js';
 import { odoRows, summary, drivenText } from './mileage-calc.js';
+import { editedShift, checkShift, LONG_SHIFT } from './shift-edit.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -137,6 +138,7 @@ function renderLive() {
   }
   if (s) {
     $('pTimer').textContent = clock(workMs(s, now));
+    $('pFixActive').classList.toggle('warn', now - s.start > LONG_SHIFT);
     const b = breakMs(s, now);
     $('pTimerSub').textContent = `зміна з ${timeFmt.format(s.start)}` + (b >= 60000 ? ` · перерви ${hm(b)}` : '') + (s.note ? ` · ${s.note}` : '');
   } else {
@@ -144,6 +146,7 @@ function renderLive() {
     $('pTimer').textContent = '—';
     $('pTimerSub').textContent = last ? `остання зміна: ${shortDate.format(last.start)}, ${hm(workMs(last))}` : 'ще не було змін';
   }
+  $('pFixActive').hidden = !s;
   // Підсумки «сьогодні / тиждень» змінюються щохвилини, поки водій на зміні
   if (s && new Date(now).getSeconds() === 0) { renderStats(); renderWeek(); }
 }
@@ -254,13 +257,17 @@ function renderHistory() {
     h.append(el('span', '', cap(dayFmt.format(day))), el('span', '', hm(items.reduce((a, s) => a + workMs(s, now), 0))));
     list.append(h);
     for (const s of items) {
-      const li = el('li', 'shift static');
+      const li = el('li', 'shift' + (s.end == null && now - s.start > LONG_SHIFT ? ' long' : ''));
       const left = el('div');
       left.append(el('div', 't', `${timeFmt.format(s.start)} – ${s.end == null ? 'зараз' : timeFmt.format(s.end)}`));
       const b = breakMs(s, now);
       const meta = [b >= 60000 ? `перерви ${hm(b)}` : '', s.note].filter(Boolean).join(' · ');
       if (meta) left.append(el('div', 'n', meta));
+      if (s.editedBy) left.append(editedMark(s));
       li.append(left, el('div', 'd', hm(workMs(s, now))));
+      li.tabIndex = 0;
+      li.addEventListener('click', () => openShift(s));
+      li.addEventListener('keydown', (k) => { if (k.key === 'Enter') openShift(s); });
       list.append(li);
     }
   }
@@ -387,3 +394,75 @@ function renderKm() {
     ul.append(li);
   }
 }
+
+// ---------- Керівник виправляє зміну (забув «Почати» / «Закінчити») ----------
+let editingShift = null;
+const toLocal = (ms) => { const d = new Date(ms); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+const fromLocal = (v) => (v ? new Date(v).getTime() : NaN);
+
+export function editedMark(s) {
+  return iconText(el('div', 'n edited ih'), 'pencil', `Виправлено керівником (${s.editedByName || '—'}) · ${shortDate.format(s.editedAt)}, ${timeFmt.format(s.editedAt)}`);
+}
+
+function openShift(s) {
+  editingShift = s || null;
+  const now = Date.now();
+  const open = !!s && s.end == null;
+  iconText($('msTitle'), s ? 'pencil' : 'plus', s ? 'Виправити зміну' : 'Додати зміну');
+  $('msWho').textContent = user().name;
+  $('msActive').hidden = !open;
+  $('msOpenLabel').hidden = !open;
+  $('msOpen').checked = false;
+  $('msEndLabel').hidden = false;
+  // Нова зміна: за замовчуванням сьогодні 08:00 – 17:00 (або до «зараз»)
+  const d8 = new Date(); d8.setHours(8, 0, 0, 0);
+  const start = s ? s.start : Math.min(+d8, now - 3600e3);
+  const end = s ? (s.end ?? now) : Math.min(+d8 + 9 * 3600e3, now);
+  $('msStart').value = toLocal(start);
+  $('msEnd').value = toLocal(end);
+  $('msStart').max = $('msEnd').max = toLocal(now);
+  $('msBreak').value = s ? Math.round(breakMs(s, now) / 60000) : 0;
+  $('msNote').value = s?.note || '';
+  $('msEdited').textContent = s?.editedBy ? `Уже виправляв(ла) ${s.editedByName || 'керівник'}: ${longDate.format(s.editedAt)}, ${timeFmt.format(s.editedAt)}` : '';
+  $('msDel').hidden = !s;
+  $('msErr').textContent = '';
+  $('msDlg').showModal();
+}
+
+$('pAddShift').addEventListener('click', () => openShift(null));
+$('pFixActive').addEventListener('click', () => { const s = active(); if (s) openShift(s); });
+$('msCancel').addEventListener('click', () => $('msDlg').close());
+$('msOpen').addEventListener('change', () => { $('msEndLabel').hidden = $('msOpen').checked; });
+$('msDel').addEventListener('click', () => {
+  if (!editingShift) return;
+  if (!confirm(`Видалити цю зміну водія ${user().name}? Це не можна скасувати.`)) return;
+  cloud.removeShift(editingShift.id).catch(showErr);
+  $('msDlg').close();
+});
+
+function showErr(e) {
+  console.error(e);
+  alert(e?.code === 'permission-denied'
+    ? 'Немає доступу. Онови правила Firestore у Firebase Console.'
+    : 'Не вдалося зберегти: ' + (e?.message || e));
+}
+
+$('msForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const now = Date.now();
+  const f = {
+    start: fromLocal($('msStart').value),
+    end: $('msOpen').checked ? null : fromLocal($('msEnd').value),
+    breakMin: Math.max(0, Number($('msBreak').value) || 0),
+    note: $('msNote').value,
+  };
+  if (f.end !== null && !Number.isFinite(f.end)) { $('msErr').textContent = 'Вкажи кінець.'; return; }
+  const others = shifts.filter((x) => x.id !== editingShift?.id);
+  const { err, warn } = checkShift(f, others, now);
+  if (err.length) { $('msErr').textContent = err[0]; return; }
+  if (warn.length && !confirm(warn.join(' ') + ' Зберегти все одно?')) return;
+  const me = feed.state.user || {};
+  const base = editingShift || { id: crypto.randomUUID ? crypto.randomUUID() : 'm' + now.toString(36), uid, driverName: user().name.slice(0, 60) };
+  cloud.putShift(editedShift(base, f, { uid: me.uid, name: me.name }, now)).catch(showErr);
+  $('msDlg').close();
+});

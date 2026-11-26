@@ -813,3 +813,14 @@ dialog textarea {
 .pchip.wait { color: var(--muted); }
 #ntViewDlg { width: min(480px, calc(100vw - 24px)); }
 html.big-text .nt-text { font-size: 19px; }
+
+/* ---------- Керівник виправляє зміни ---------- */
+.p-fix { margin-top: 10px; }
+.p-fix.warn { background: rgba(245,158,11,.18); color: #fcd34d; border: 1px solid rgba(245,158,11,.55); }
+.p-add-shift { width: 100%; margin: 8px 0 4px; }
+.p-hint { margin: 4px 0 0; }
+.shift.long .t { color: #fcd34d; }
+.shift .n.edited { color: #c4b5fd; gap: 4px; }
+.shift .n.edited svg.i { width: 14px; height: 14px; color: inherit; }
+.ms-note { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.45); color: #fcd34d; border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 4px 0 12px; }
+.ms-note[hidden] { display: none; }

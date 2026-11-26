@@ -3,6 +3,7 @@
 import { hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { summarizeByDriver } from './report.js';
 import { distanceIn, hasOdoOn } from './mileage-calc.js';
+import { LONG_SHIFT } from './shift-edit.js';
 import * as cloud from './cloud.js';
 import { openProfile, refreshProfile } from './profile.js';
 import { iconText } from './icons.js';
@@ -260,6 +261,10 @@ function render() {
     const badge = el('div', cls, status);
     if (r.active && r.onBreak) iconText(badge, 'coffee', status);
     left.append(badge);
+    // Зміна триває підозріло довго — мабуть, забув натиснути «Закінчити»
+    if (!off && r.active && now - r.active.start > LONG_SHIFT) {
+      left.append(iconText(el('div', 'badge warn ih'), 'warn', `${Math.floor((now - r.active.start) / 3600e3)} год без зупинки — забув закінчити?`));
+    }
     // Сьогодні працював, а кілометраж на початок дня не вписав
     const today = +startOfDay(now);
     if (!off && today >= range[0] && today < range[1]

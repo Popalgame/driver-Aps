@@ -1,7 +1,7 @@
 import { breakMs, workMs, totalSince, clock, hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import * as cloud from './cloud.js';
 import { startManager, stopManager, setStaff } from './manager.js';
-import { closeProfile } from './profile.js';
+import { closeProfile, editedMark } from './profile.js';
 import { startMileage, stopMileage } from './mileage.js';
 import { startCalendar, stopCalendar, showDate } from './calendar.js';
 import { startFeed, stopFeed, setUserName } from './feed.js';
@@ -239,6 +239,7 @@ function renderHistory() {
       const b = breakMs(s);
       const meta = [b >= 60000 ? `перерви ${hm(b)}` : '', s.note].filter(Boolean).join(' · ');
       if (meta) left.append(Object.assign(document.createElement('div'), { className: 'n', textContent: meta }));
+      if (s.editedBy && s.editedBy !== profile?.uid) left.append(editedMark(s)); // виправив керівник
       li.append(left, Object.assign(document.createElement('div'), { className: 'd', textContent: hm(workMs(s)) }));
       li.addEventListener('click', () => openEdit(s));
       list.append(li);
