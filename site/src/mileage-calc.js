@@ -128,7 +128,7 @@ export function defaultCar(entries, cars, uid) {
   const odo = entries.filter((e) => e.type === 'odo' && e.car).sort(sortAt);
   const last = odo[odo.length - 1]?.car;
   if (last && cars.some((c) => c.id === last)) return last;
-  return cars.find((c) => c.driver === uid)?.id || (cars.length === 1 ? cars[0].id : null);
+  return cars.find((c) => c.driver === uid)?.id || cars.find((c) => c.personal)?.id || (cars.length === 1 ? cars[0].id : null);
 }
 
 export const dayKey = (ms) => {

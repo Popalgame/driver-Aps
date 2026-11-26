@@ -32,6 +32,7 @@ export function summarizeByDriver(shifts, users, from, to, now = Date.now()) {
     if (u.name) r.name = u.name;
     if (u.email) r.email = u.email;
     r.role = u.role || '';
+    r.kind = u.kind || '';
   }
   const list = [...byUid.values()];
   for (const r of list) {

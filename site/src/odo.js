@@ -5,7 +5,7 @@
 import * as cloud from './cloud.js';
 import { startOfDay } from './time.js';
 import { hasOdoOn, previousOdo, dayKey, defaultCar, withCarKm } from './mileage-calc.js';
-import { carChips, carById } from './cars.js';
+import { carChips, carById, myCars } from './cars.js';
 import * as feed from './feed.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,8 +25,11 @@ export function initOdo(shiftsGetter) { getShifts = shiftsGetter; }
 export function startOdo(profile) {
   stopOdo();
   user = { uid: profile.uid };
-  stop = cloud.watchMileage(profile.uid, (list) => { entries = list; loaded = true; renderRemind(); }, (e) => console.error(e));
+  stop = cloud.watchMileage(profile.uid, (list) => { entries = list; loaded = true; renderRemind(); shareKm(); }, (e) => console.error(e));
 }
+// Свої записи — для «Мій час» (на якій машині сьогодні)
+const shareKm = () => document.dispatchEvent(new CustomEvent('own-km', { detail: entries.map((e) => ({ ...e, uid: user?.uid })) }));
+
 export function stopOdo() {
   stop?.(); stop = null;
   user = null; entries = []; loaded = false;
@@ -44,7 +47,7 @@ export function askOdo(start) {
 
 // Машини: вибір угорі вікна; підказка «учора було» — для вибраної машини
 function renderCars() {
-  const cars = feed.state.cars;
+  const cars = myCars();
   $('odoAskCarBox').hidden = !cars.length;
   if (cars.length && !carById(carSel)) carSel = defaultCar(entries, cars, user.uid);
   if (cars.length) carChips($('odoAskCars'), carSel, user.uid, (id) => { carSel = id; renderCars(); });
@@ -86,7 +89,7 @@ $('odoAskForm').addEventListener('submit', (e) => {
   if (!Number.isFinite(v) || v <= 0) { $('odoAskErr').textContent = 'Впиши кілометраж числом, наприклад 152400.'; return; }
   const today = +startOfDay();
   const car = carById(carSel);
-  if (feed.state.cars.length && !car) { $('odoAskErr').textContent = 'Вибери машину, на якій їдеш сьогодні.'; return; }
+  if (myCars().length && !car) { $('odoAskErr').textContent = 'Вибери машину, на якій їдеш сьогодні.'; return; }
   const prev = previousOdo(withCarKm(entries, feed.state.carKm, user.uid), today, car ? car.id : undefined);
   if (prev && v < prev.km && !confirm(`Це менше, ніж ${km(prev.km)} (${dateFmt.format(prev.at)}). Перевір. Зберегти все одно?`)) return;
   if (prev && v - prev.km > 3000 && !confirm(`Від попереднього запису +${km(v - prev.km)}. Точно правильно?`)) return;
@@ -96,6 +99,7 @@ $('odoAskForm').addEventListener('submit', (e) => {
   entries = entries.filter((x) => x.id !== id).concat(entry);
   cloud.putMileage(user.uid, entry).catch((err) => console.error(err));
   renderRemind();
+  shareKm();
   finish();
 });
 

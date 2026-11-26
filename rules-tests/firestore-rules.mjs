@@ -422,6 +422,9 @@ test('машини: веде керівник; водії бачать усі; �
   await assertFails(setDoc(doc(m, 'cars/bad2'), car('alice', { plate: '' })));
   await assertSucceeds(setDoc(doc(m, 'cars/c3'), car(null, { plate: 'KA0001AA', project: 'p1' })));
   await assertFails(setDoc(doc(m, 'cars/bad3'), car(null, { project: 5 })));
+  await assertSucceeds(updateDoc(doc(m, 'cars/c3'), { access: ['alice'], updatedAt: 2 }));
+  await assertFails(updateDoc(doc(m, 'cars/c3'), { access: 'alice' }));
+  await assertFails(updateDoc(doc(as('alice'), 'cars/c3'), { access: ['alice', 'bob'] }));
   const a = as('alice');
   await assertSucceeds(getDoc(doc(a, 'cars/c1')));
   await assertSucceeds(getDocs(query(collection(a, 'cars'), where('driver', '==', 'alice'))));
@@ -458,4 +461,22 @@ test('показники одометра машин видно всім вод�
   await assertFails(getDoc(doc(a, 'mileage/b3')));
   await assertFails(getDocs(query(collection(a, 'mileage'), where('car', 'in', ['c1']))));
   await assertFails(getDoc(doc(as('newbie'), 'mileage/b1')));
+});
+
+test('працівник на своєму авто: створює керівник, свою машину вписує сам', async () => {
+  const m = as('boss');
+  await assertSucceeds(setDoc(doc(m, 'users/emp1'), { ...profile('Марко', 'driver'), kind: 'emp' }));
+  await assertFails(setDoc(doc(m, 'users/emp2'), { ...profile('X', 'driver'), kind: 'boss' }));
+  const e = as('emp1');
+  await assertSucceeds(updateDoc(doc(e, 'users/emp1'), { myCar: { plate: 'WX12345', model: 'Dacia Jogger' } }));
+  await assertFails(updateDoc(doc(e, 'users/emp1'), { myCar: { plate: '', model: '' } }));
+  await assertFails(updateDoc(doc(e, 'users/emp1'), { myCar: { plate: 'A', model: 'B', extra: 1 } }));
+  await assertFails(updateDoc(doc(e, 'users/emp1'), { kind: 'hr' }));
+  await assertFails(updateDoc(doc(as('alice'), 'users/emp1'), { myCar: null }));
+  // працює як водій: зміни й кілометраж
+  await assertSucceeds(setDoc(doc(e, 'shifts/se'), shift('emp1')));
+  await assertSucceeds(setDoc(doc(e, 'mileage/me'), { uid: 'emp1', type: 'odo', at: 1, km: 5000, liters: null, amount: null, note: '', updatedAt: 1, car: 'own_emp1', plate: 'WX12345' }));
+  // керівник закриває / відкриває доступ
+  await assertSucceeds(updateDoc(doc(m, 'users/emp1'), { role: 'disabled' }));
+  await assertSucceeds(updateDoc(doc(m, 'users/emp1'), { role: 'driver' }));
 });

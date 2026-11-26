@@ -129,7 +129,7 @@ export function openAddDriver(onCreated = null, title = 'Новий водій',
   $('dName').focus();
 }
 
-$('addDriverBtn').addEventListener('click', () => openAddDriver());
+$('addDriverBtn').addEventListener('click', () => (staff() === 'emp' ? openAddDriver(null, 'Новий працівник', 'emp') : openAddDriver()));
 $('addHrBtn').addEventListener('click', () => openAddDriver(null, 'Новий кадровик', 'hr'));
 $('dGen').addEventListener('click', () => { $('dPass').value = genPassword(); });
 $('dCancel').addEventListener('click', () => $('driverDlg').close());
@@ -154,7 +154,8 @@ $('driverForm').addEventListener('submit', async (e) => {
   $('dErr').textContent = 'Додаю…';
   try {
     const uid = await cloud.createDriver(name, email, pass, newRole);
-    $('dDoneText').textContent = newRole === 'hr' ? 'Кадровика додано. Передай дані для входу:' : 'Водія додано. Передай йому дані для входу:';
+    $('dDoneText').textContent = newRole === 'hr' ? 'Кадровика додано. Передай дані для входу:'
+      : newRole === 'emp' ? 'Працівника додано. Передай йому дані для входу:' : 'Водія додано. Передай йому дані для входу:';
     onDriverCreated?.(uid, name);
     $('dErr').textContent = '';
     $('dCreds').textContent = `Driver-Aps\n${APP_URL}\nEmail: ${email}\nПароль: ${pass}`;
@@ -221,25 +222,33 @@ function renderHr() {
 
 // Персонал: «Водії» або «Кадри» (вибір пам'ятає цей пристрій)
 const STAFF_KEY = 'driver-staff-tab';
+const staff = () => $('managerView').dataset.staff;
 export function setStaff(s) {
   $('managerView').dataset.staff = s;
   for (const b of document.querySelectorAll('#staffSeg button')) b.classList.toggle('on', b.dataset.s === s);
   try { localStorage.setItem(STAFF_KEY, s); } catch { /* немає доступу */ }
+  $('addDriverText').textContent = s === 'emp' ? 'Додати працівника' : 'Додати водія';
+  $('empHint').hidden = s !== 'emp';
+  if (running) render();
 }
 for (const b of document.querySelectorAll('#staffSeg button')) b.addEventListener('click', () => setStaff(b.dataset.s));
-try { if (localStorage.getItem(STAFF_KEY) === 'hr') setStaff('hr'); } catch { /* немає доступу */ }
+try { const v = localStorage.getItem(STAFF_KEY); if (v === 'hr' || v === 'emp') setStaff(v); } catch { /* немає доступу */ }
 
 function render() {
   if (!running || !range) return;
   renderPending();
   renderHr();
-  $('cntDrivers').textContent = users.filter((u) => (u.role === 'driver' || u.role === 'disabled') && u.kind !== 'hr').length || '';
+  $('cntDrivers').textContent = users.filter((u) => (u.role === 'driver' || u.role === 'disabled') && !u.kind).length || '';
+  $('cntEmp').textContent = users.filter((u) => u.kind === 'emp').length || '';
   $('cntHr').textContent = users.filter((u) => u.kind === 'hr').length || '';
   const now = Date.now();
-  const rows = summarizeByDriver(shifts, users, range[0], range[1], now);
+  // «Водії» — водії фірми (і хто має зміни без профілю); «Працівники» — на своїх авто
+  const emp = staff() === 'emp';
+  const rows = summarizeByDriver(shifts, users, range[0], range[1], now).filter((r) => (r.kind === 'emp') === emp);
   const list = $('drivers');
   list.replaceChildren();
   $('mEmpty').hidden = rows.length > 0;
+  $('mEmpty').textContent = emp ? 'Ще немає жодного працівника. Натисни «Додати працівника».' : 'Ще немає жодного водія. Натисни «Додати водія».';
 
   const onShift = rows.filter((r) => r.active).length;
   const total = rows.reduce((a, r) => a + r.total, 0);

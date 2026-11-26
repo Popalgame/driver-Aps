@@ -21,8 +21,12 @@ let extra = new Map(); // нові водії, створені з діалог�
 
 const nameOf = (uid, p) => users.find((u) => u.id === uid)?.name || extra.get(uid) || p?.names?.[uid] || '';
 const byName = (a, b) => (a.role === 'disabled') - (b.role === 'disabled') || (a.name || '').localeCompare(b.name || '', 'uk');
-const drivers = () => users.filter((u) => (u.role === 'driver' || u.role === 'disabled') && u.kind !== 'hr').sort(byName);
+const drivers = () => users.filter((u) => (u.role === 'driver' || u.role === 'disabled') && !u.kind).sort(byName);
 const hrStaff = () => users.filter((u) => u.kind === 'hr').sort(byName);
+const empStaff = () => users.filter((u) => u.kind === 'emp').sort(byName);
+// Працівники проєкту — окремо (emps): лише у списку проєкту, без календаря й оголошень проєкту
+// (календар, завдання й оголошення проєкту — лише для водіїв і кадрів у members / hr)
+const empIds = (p) => new Set(p.emps || []);
 const isManager = () => role === 'manager';
 
 function showError(e) {
@@ -47,7 +51,7 @@ export function stopProjects() {
 }
 
 function save(p) {
-  const names = Object.fromEntries([...p.members, ...p.hr].map((uid) => [uid, nameOf(uid, p).slice(0, 60)]));
+  const names = Object.fromEntries([...p.members, ...p.hr, ...(p.emps || [])].map((uid) => [uid, nameOf(uid, p).slice(0, 60)]));
   return cloud.putProject({ ...p, names }).catch(showError);
 }
 
@@ -68,12 +72,23 @@ function render() {
     // Водії — так само, як «Кадри» і «Машини»: підпис і чипи
     const team = el('div', 'proj-team proj-drv');
     team.append(iconText(el('span', 'muted small-text ih'), 'users', 'Водії:'));
-    for (const uid of p.members || []) {
+    const es = empIds(p);
+    const drv = (p.members || []).filter((uid) => !es.has(uid));
+    for (const uid of drv) {
       const off = users.find((u) => u.id === uid)?.role === 'disabled';
       team.append(el('span', 'pchip' + (off ? ' off' : ''), nameOf(uid, p) || '…'));
     }
-    if (!p.members?.length) team.append(el('span', 'muted small-text', 'Водіїв ще не додано'));
+    if (!drv.length) team.append(el('span', 'muted small-text', 'Водіїв ще не додано'));
     li.append(team);
+    if (es.size) {
+      const er = el('div', 'proj-team proj-emp');
+      er.append(iconText(el('span', 'muted small-text ih'), 'user', 'Працівники:'));
+      for (const uid of p.emps) {
+        const off = users.find((u) => u.id === uid)?.role === 'disabled';
+        er.append(el('span', 'pchip emp' + (off ? ' off' : ''), nameOf(uid, p) || '…'));
+      }
+      li.append(er);
+    }
     if (p.hr?.length) {
       const hr = el('div', 'proj-team proj-hr');
       hr.append(iconText(el('span', 'muted small-text ih'), 'idcard', 'Кадри:'));
@@ -148,6 +163,9 @@ function openProject(p) {
   const hs = hrStaff();
   $('projHr').replaceChildren(...hs.map((u) => driverRow(u.id, u.name || u.email, !!p?.hr?.includes(u.id), u.role === 'disabled')));
   $('projNoHr').hidden = hs.length > 0;
+  const em = empStaff();
+  $('projEmps').replaceChildren(...em.map((u) => driverRow(u.id, u.name || u.email, !!p?.emps?.includes(u.id), u.role === 'disabled')));
+  $('projNoEmps').hidden = em.length > 0;
   $('projDel').hidden = !p;
   $('projDlgErr').textContent = '';
   $('projDlg').showModal();
@@ -176,6 +194,15 @@ $('projNewHr').addEventListener('click', () => {
   }, 'Новий кадровик', 'hr');
 });
 
+// Новий працівник прямо з проєкту
+$('projNewEmp').addEventListener('click', () => {
+  openAddDriver((uid, name) => {
+    extra.set(uid, name);
+    $('projEmps').prepend(driverRow(uid, name, true, false));
+    $('projNoEmps').hidden = true;
+  }, 'Новий працівник', 'emp');
+});
+
 $('projDel').addEventListener('click', async () => {
   if (!editing) return;
   const n = events.filter((e) => e.project === editing.id).length;
@@ -194,6 +221,7 @@ $('projForm').addEventListener('submit', (ev) => {
   }
   const members = [...new Set([...$('projDrivers').querySelectorAll('input:checked')].map((c) => c.value))];
   const hr = [...new Set([...$('projHr').querySelectorAll('input:checked')].map((c) => c.value))];
-  save({ id: editing?.id || newId(), name, members, hr, color, createdAt: editing?.createdAt || Date.now() });
+  const emps = [...new Set([...$('projEmps').querySelectorAll('input:checked')].map((c) => c.value))];
+  save({ id: editing?.id || newId(), name, members, hr, emps, color, createdAt: editing?.createdAt || Date.now() });
   $('projDlg').close();
 });

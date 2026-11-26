@@ -9,7 +9,7 @@ import { keyToDate, COLORS, peopleText } from './calendar-calc.js';
 import { odoRows, summary, drivenText, kmForDriver } from './mileage-calc.js';
 import { editedShift, checkShift, LONG_SHIFT } from './shift-edit.js';
 import { photoFromFile, setAvatar } from './photo.js';
-import { driverCarEl } from './cars.js';
+import { driverCarEl, personalCar, plate, canUse } from './cars.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -208,8 +208,34 @@ function renderHead() {
 
 // Машина водія: на якій сьогодні / востаннє / закріплена
 function renderCar() {
-  const n = uid ? driverCarEl(uid, kmEntries.map((e) => ({ ...e, uid }))) : null;
+  const u = uid ? getUser(uid) : null;
+  const n = uid ? driverCarEl(uid, kmEntries.map((e) => ({ ...e, uid })), false, personalCar(uid, u?.myCar)) : null;
   $('pCar').replaceChildren(...(n ? [n] : []));
+  renderCarAccess(u);
+}
+
+// Працівник: до яких машин фірми є доступ (керівник натискає номер — дати / забрати)
+function renderCarAccess(u) {
+  const box = $('pCarAccess');
+  const cars = feed.state.cars;
+  box.hidden = u?.kind !== 'emp' || !cars.length;
+  if (box.hidden) return;
+  const chips = cars.slice().sort((a, b) => a.plate.localeCompare(b.plate)).map((c) => {
+    const on = canUse(c, uid);
+    const b = el('button', 'acc-chip' + (on ? ' on' : ''));
+    b.type = 'button';
+    b.title = on ? 'Забрати доступ' : 'Дати доступ';
+    b.append(plate(c.plate), el('span', 'acc-mark', on ? '✓' : '+'));
+    b.disabled = c.driver === uid; // закріплену машину — у «Машинах»
+    b.addEventListener('click', () => {
+      const access = new Set(c.access || []);
+      if (access.has(uid)) access.delete(uid); else access.add(uid);
+      cloud.patchCar(c.id, { access: [...access] }).catch((e) => alert(e?.code === 'permission-denied' ? 'Немає доступу. Онови апку.' : 'Не вдалося: ' + (e?.message || e)));
+    });
+    return b;
+  });
+  box.replaceChildren(el('div', 'muted small-text', 'Доступ до машин фірми (натисни номер):'), Object.assign(el('div', 'acc-chips'), {}));
+  box.lastChild.append(...chips);
 }
 
 function renderLive() {

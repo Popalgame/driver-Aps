@@ -23,6 +23,7 @@ export function driverCar(cars, entries, uid, now = Date.now()) {
   const odo = entries.filter((e) => e.type === 'odo' && e.uid === uid && e.car && cars.some((c) => c.id === e.car))
     .sort((a, b) => b.at - a.at);
   if (odo[0]) return { car: cars.find((c) => c.id === odo[0].car), how: odo[0].at >= +d ? 'today' : 'last', at: odo[0].at };
-  const a = cars.find((c) => c.driver === uid);
+  // закріплена керівником, інакше своя машина працівника
+  const a = cars.find((c) => c.driver === uid) || cars.find((c) => c.personal && c.id === 'own_' + uid);
   return a ? { car: a, how: 'assigned' } : null;
 }

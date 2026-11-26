@@ -42,11 +42,19 @@ service cloud.firestore {
       return p == null || (p is string && p.size() <= 40000 && p.matches('data:image/jpeg;base64,[A-Za-z0-9+/=]+'));
     }
 
+    // Власна машина працівника (kind 'emp'): { plate, model }
+    function validMyCar(c) {
+      return c == null || (c is map && c.keys().hasOnly(['plate', 'model'])
+        && c.plate is string && c.plate.size() >= 1 && c.plate.size() <= 12
+        && c.model is string && c.model.size() <= 40);
+    }
+
     function validProfile(d) {
-      return d.keys().hasOnly(['name', 'email', 'role', 'kind', 'createdAt', 'photo'])
+      return d.keys().hasOnly(['name', 'email', 'role', 'kind', 'createdAt', 'photo', 'myCar'])
         && validName(d.name)
         && validPhoto(d.get('photo', null))
-        && (!('kind' in d) || d.kind == 'hr')
+        && validMyCar(d.get('myCar', null))
+        && (!('kind' in d) || d.kind in ['hr', 'emp'])
         && d.email is string && d.email.size() <= 200
         && d.createdAt is number;
     }
@@ -62,14 +70,15 @@ service cloud.firestore {
       // Керівник додає водія або кадровика (у кадровика kind: 'hr')
       allow create: if isManager() && request.auth.uid != uid
         && validProfile(request.resource.data)
-        && ((request.resource.data.role == 'driver' && !('kind' in request.resource.data))
+        && ((request.resource.data.role == 'driver' && request.resource.data.get('kind', 'emp') == 'emp')
           || (request.resource.data.role == 'hr' && request.resource.data.get('kind', '') == 'hr'));
 
       // Свій профіль: лише ім'я
       allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photo'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photo', 'myCar'])
         && validName(request.resource.data.name)
-        && validPhoto(request.resource.data.get('photo', null));
+        && validPhoto(request.resource.data.get('photo', null))
+        && validMyCar(request.resource.data.get('myCar', null));
 
       // Керівник: підтвердити, закрити / відновити доступ, перейменувати.
       // Не себе й не інших керівників; керівником нікого не робить.
@@ -164,7 +173,8 @@ service cloud.firestore {
     }
 
     function validProject(d) {
-      return d.keys().hasOnly(['name', 'members', 'hr', 'names', 'color', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['name', 'members', 'hr', 'emps', 'names', 'color', 'createdAt', 'updatedAt'])
+        && (!('emps' in d) || (d.emps is list && d.emps.size() <= 50))
         && d.name is string && d.name.size() >= 1 && d.name.size() <= 40
         && d.members is list && d.members.size() <= 50
         && (!('hr' in d) || (d.hr is list && d.hr.size() <= 20))
@@ -242,7 +252,8 @@ service cloud.firestore {
     // ---------- Машини ----------
     // Картку машини веде керівник; водії бачать усі машини, щоб вибрати, на якій їдуть.
     function validCar(d) {
-      return d.keys().hasOnly(['plate', 'model', 'driver', 'driverName', 'project', 'note', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['plate', 'model', 'driver', 'driverName', 'project', 'access', 'note', 'createdAt', 'updatedAt'])
+        && (!('access' in d) || (d.access is list && d.access.size() <= 50))
         && (d.get('project', null) == null || d.project is string)
         && d.plate is string && d.plate.size() >= 1 && d.plate.size() <= 12
         && d.model is string && d.model.size() <= 40

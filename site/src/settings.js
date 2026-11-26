@@ -2,7 +2,7 @@
 import * as cloud from './cloud.js';
 import { VERSION_LABEL } from './version.js';
 import { photoFromFile, setAvatar } from './photo.js';
-import { driverCarEl } from './cars.js';
+import { driverCarEl, getPersonal } from './cars.js';
 import * as feed from './feed.js';
 
 const $ = (id) => document.getElementById(id);
@@ -85,10 +85,13 @@ $('sNameForm').addEventListener('submit', async (e) => {
 
 // ---------- Машина (на якій водій сьогодні / востаннє / закріплена) ----------
 function renderCar() {
-  const n = profile && profile.role !== 'hr' ? driverCarEl(profile.uid, feed.state.carKm, true) : null;
+  const n = profile && profile.role !== 'hr' ? driverCarEl(profile.uid, [...feed.state.carKm, ...ownKm], true, getPersonal()) : null;
   $('sCar').replaceChildren(...(n ? [n] : []));
 }
 feed.subscribe(() => { if (profile && !$('settingsView').hidden) renderCar(); });
+let ownKm = [];
+document.addEventListener('own-km', (e) => { ownKm = e.detail || []; });
+document.addEventListener('own-car-changed', () => { if (profile && !$('settingsView').hidden) renderCar(); });
 
 // ---------- Фото ----------
 function renderPhoto() {

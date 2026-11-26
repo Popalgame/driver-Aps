@@ -3,7 +3,7 @@ import * as cloud from './cloud.js';
 import { startOfDay, startOfMonth } from './time.js';
 import { iconText } from './icons.js';
 import { odoRows, summary, previousOdo, dayKey, drivenText, defaultCar, withCarKm, kmForDriver } from './mileage-calc.js';
-import { renderMyCar, carChips, carById } from './cars.js';
+import { renderMyCar, carChips, carById, myCars } from './cars.js';
 import * as feed from './feed.js';
 
 const $ = (id) => document.getElementById(id);
@@ -80,7 +80,7 @@ $('odoForm').addEventListener('submit', (e) => {
   if (!Number.isFinite(v) || v <= 0) { msg('Впиши кілометраж числом, наприклад 184520.', false); return; }
   const today = +startOfDay();
   const car = carById(carSel);
-  if (feed.state.cars.length && !car) { msg('Вибери машину, на якій їдеш сьогодні.', false); return; }
+  if (myCars().length && !car) { msg('Вибери машину, на якій їдеш сьогодні.', false); return; }
   const prev = previousOdo(allKm(), today, car ? car.id : undefined);
   if (prev && v < prev.km && !confirm(`Це менше, ніж попередній запис${car ? ' на ' + car.plate : ''} (${km(prev.km)} за ${dateFmt.format(prev.at)}). Зберегти все одно?`)) return;
   if (prev && v - prev.km > 3000 && !confirm(`Від попереднього запису +${km(v - prev.km)}. Точно правильно?`)) return;
@@ -208,7 +208,7 @@ function render() {
 
 // Машина на сьогодні: уже вписана сьогодні → її; інакше вибрана / звична / закріплена
 function pickCar() {
-  const cars = feed.state.cars;
+  const cars = myCars();
   if (!user || !cars.length) { carSel = null; $('odoCarBox').hidden = true; return; }
   const today = entries.find((e) => e.type === 'odo' && e.at === +startOfDay());
   if (today?.car && carById(today.car)) carSel = today.car;

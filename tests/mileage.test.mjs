@@ -75,4 +75,7 @@ test('пробіг рахується окремо для кожної маши�
   assert.equal(previousOdo([odo(10, 1, 77)], day(10, 4), 'B').km, 77); // старий запис без машини
   assert.equal(defaultCar(mine, [{ id: 'A' }, { id: 'B' }], 'a'), 'B');
   assert.equal(defaultCar([], [{ id: 'A', driver: 'a' }, { id: 'B' }], 'a'), 'A');
+  // працівник: своя першою, якщо ще не їздив і машину фірми не закріпили
+  assert.equal(defaultCar([], [{ id: 'own_a', personal: true }, { id: 'A' }, { id: 'B' }], 'a'), 'own_a');
+  assert.equal(defaultCar([], [{ id: 'own_a', personal: true }, { id: 'A', driver: 'a' }], 'a'), 'A');
 });

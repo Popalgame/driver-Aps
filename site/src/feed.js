@@ -36,6 +36,7 @@ export function startFeed(profile) {
   if (manager) stops.push(cloud.watchUsers((list) => { state.users = list; emit(); }, fail));
   // Оголошення: помилку (напр., ще не оновлені правила) не показуємо в календарі — лише в консолі
   // Машини: керівнику — усі, водію — своя (кадрам не потрібні)
+  // Машини фірми (працівнику теж — йому можуть дати машину фірми на час)
   if (profile.role !== 'hr') {
     stops.push(cloud.watchCars(profile.uid, profile.role, (list) => {
       state.cars = list;

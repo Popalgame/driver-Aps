@@ -117,7 +117,7 @@ export const logout = () => fb.signOut(auth);
 
 // Створює обліковий запис водія. Окремий екземпляр Firebase (у пам'яті),
 // щоб керівник не вийшов зі свого облікового запису.
-// role: 'driver' або 'hr' (кадри; у профілі ще kind: 'hr')
+// role: 'driver', 'hr' (кадри; у профілі kind: 'hr') або 'emp' (працівник на своєму авто: role 'driver', kind 'emp')
 export async function createDriver(name, email, password, role = 'driver') {
   await ready;
   const sec = fb.initializeApp(config, 'add-driver-' + Date.now());
@@ -128,8 +128,8 @@ export async function createDriver(name, email, password, role = 'driver') {
     await fb.updateProfile(user, { displayName: name });
     await fb.signOut(secAuth);
     // Профіль записує керівник (правила дозволяють йому лише роль 'driver')
-    const prof = { name, email, role, createdAt: Date.now() };
-    if (role === 'hr') prof.kind = 'hr';
+    const prof = { name, email, role: role === 'emp' ? 'driver' : role, createdAt: Date.now() };
+    if (role === 'hr' || role === 'emp') prof.kind = role;
     await fb.setDoc(fb.doc(db, 'users', user.uid), prof);
     return user.uid;
   } finally {
@@ -361,4 +361,16 @@ export function watchCarMileage(carIds, cb, onError) {
     const q = fb.query(fb.collection(db, 'mileage'), fb.where('type', '==', 'odo'), fb.where('car', 'in', carIds.slice(0, 30)));
     return fb.onSnapshot(q, (snap) => cb(snap.docs.map(fromDoc)), onError);
   });
+}
+
+// Власна машина працівника: { plate, model } або null
+export async function setMyCar(uid, car) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'users', uid), { myCar: car || null });
+}
+
+// Часткова зміна машини (напр., доступ працівників)
+export async function patchCar(id, patch) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'cars', id), { ...patch, updatedAt: Date.now() });
 }

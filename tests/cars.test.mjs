@@ -27,6 +27,7 @@ test('машина водія: сьогоднішня, остання або з�
   const today = +new Date(2026, 10, 26), yday = +new Date(2026, 10, 25);
   assert.deepEqual(driverCar(cars, [], 'a', now), { car: cars[0], how: 'assigned' });
   assert.equal(driverCar(cars, [], 'b', now), null);
+  assert.equal(driverCar([...cars, { id: 'own_b', personal: true }], [], 'b', now).car.id, 'own_b'); // своя машина працівника
   assert.equal(driverCar(cars, [{ type: 'odo', uid: 'a', at: yday, km: 1, car: 'B' }], 'a', now).how, 'last');
   const t = driverCar(cars, [{ type: 'odo', uid: 'a', at: yday, km: 1, car: 'A' }, { type: 'odo', uid: 'a', at: today, km: 2, car: 'B' }], 'a', now);
   assert.equal(t.car.id, 'B'); assert.equal(t.how, 'today');

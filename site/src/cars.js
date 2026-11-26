@@ -119,7 +119,7 @@ function openCar(c) {
   $('carModel').value = c?.model || '';
   const sel = $('carDriver');
   sel.replaceChildren(Object.assign(el('option', '', '— без водія —'), { value: '' }),
-    ...drivers().map((u) => Object.assign(el('option', '', u.name || u.email), { value: u.id })));
+    ...drivers().map((u) => Object.assign(el('option', '', (u.name || u.email) + (u.kind === 'emp' ? ' · працівник' : '')), { value: u.id })));
   sel.value = c?.driver || '';
   const ps = $('carProject');
   ps.replaceChildren(Object.assign(el('option', '', '— без проєкту —'), { value: '' }),
@@ -127,6 +127,14 @@ function openCar(c) {
   // Нова машина з відкритим фільтром проєкту — одразу в цей проєкт
   ps.value = c ? (c.project || '') : (filter && filter !== '-' ? filter : '');
   $('carNote').value = c?.note || '';
+  // Працівники, яким можна їздити на цій машині
+  const emps = st.users.filter((u) => u.kind === 'emp' && u.role !== 'disabled').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'uk'));
+  $('carAccessBox').hidden = !emps.length;
+  $('carAccess').replaceChildren(...emps.map((u) => {
+    const lab = el('label', 'check');
+    lab.append(Object.assign(el('input'), { type: 'checkbox', value: u.id, checked: (c?.access || []).includes(u.id) }), el('span', '', u.name || u.email));
+    return lab;
+  }));
   renderKmNow();
   $('carDel').hidden = !c;
   $('carErrDlg').textContent = '';
@@ -170,45 +178,65 @@ $('carForm').addEventListener('submit', (e) => {
     model: $('carModel').value.trim().slice(0, 40),
     driver, driverName: (u?.name || '').slice(0, 60),
     project: $('carProject').value || null,
+    access: [...$('carAccess').querySelectorAll('input:checked')].map((x) => x.value),
     note: $('carNote').value.trim().slice(0, 200),
     createdAt: editing?.createdAt || Date.now(),
   }).catch(showError);
   $('carDlg').close();
 });
 
+// ---------- Працівник на своєму авто (kind 'emp') ----------
+// Його машина — у профілі (users/{uid}.myCar), а в записах кілометражу car = 'own_<uid>'.
+export const personalCar = (uid, myCar) => (myCar?.plate ? { id: 'own_' + uid, plate: myCar.plate, model: myCar.model || '', personal: true } : null);
+let emp = null, personal = null;
+export function setEmpCar(uid, myCar) {
+  emp = uid || null;
+  personal = uid ? personalCar(uid, myCar) : null;
+}
+export const getPersonal = () => personal;
+// Машини, з яких вибирає цей користувач: водій — машини фірми; працівник — своя (першою) і лише ті
+// машини фірми, до яких керівник дав йому доступ (або закріпив за ним)
+export const canUse = (c, uid) => c.driver === uid || (c.access || []).includes(uid);
+export const myCars = () => (emp
+  ? [...(personal ? [personal] : []), ...feed.state.cars.filter((c) => canUse(c, emp))]
+  : feed.state.cars);
+
 // ---------- Вибір машини, на якій водій їде (кілометраж зранку) ----------
 // Свої (закріплені) і звична — першими. onPick(id) — натиснув номер.
 export function carChips(box, selected, uid, onPick) {
-  const cars = [...feed.state.cars].sort((a, b) => (b.id === selected) - (a.id === selected)
-    || (b.driver === uid) - (a.driver === uid) || a.plate.localeCompare(b.plate));
+  const cars = [...myCars()].sort((a, b) => (b.id === selected) - (a.id === selected)
+    || !!b.personal - !!a.personal || (b.driver === uid) - (a.driver === uid) || a.plate.localeCompare(b.plate));
   box.hidden = !cars.length;
   box.replaceChildren(...cars.map((c) => {
     const b = el('button', 'car-chip' + (c.id === selected ? ' on' : ''));
     b.type = 'button';
     b.append(plate(c.plate));
-    if (c.model) b.append(el('small', '', c.model));
+    if (c.model || c.personal) b.append(el('small', '', [c.model, c.personal ? 'своя' : ''].filter(Boolean).join(' · ')));
     b.setAttribute('aria-pressed', String(c.id === selected));
     b.addEventListener('click', () => onPick(c.id));
     return b;
   }));
 }
-export const carById = (id) => feed.state.cars.find((c) => c.id === id) || null;
+export const carById = (id) => (personal && personal.id === id ? personal : feed.state.cars.find((c) => c.id === id) || null);
 
 // «Машина: [номер] модель · сьогодні» — для профілю водія (у керівника і в налаштуваннях водія)
-export function driverCarEl(uid, entries, self = false) {
-  const r = driverCar(feed.state.cars, entries, uid);
+export function driverCarEl(uid, entries, self = false, own = null) {
+  const r = driverCar(own ? [...feed.state.cars, own] : feed.state.cars, entries, uid);
   if (!r) return null;
   const box = el('div', 'p-car');
   box.append(iconText(el('span', 'muted small-text ih'), 'car', 'Машина:'), plate(r.car.plate));
   if (r.car.model) box.append(el('span', 'p-car-model', r.car.model));
   const how = { today: self ? 'сьогодні' : 'сьогодні їде', last: `востаннє ${shortFmt.format(r.at)}`, assigned: 'закріплена' }[r.how];
-  box.append(el('span', 'p-car-how ' + r.how, how));
+  box.append(el('span', 'p-car-how ' + r.how, r.car.personal && r.how === 'assigned' ? 'своя' : how));
   return box;
 }
 
 // ---------- Водій: «Моя машина» у вкладці «Кілометраж» ----------
 // Машина, на якій він їде сьогодні (або звична / закріплена)
+let todayCar = null;
 export function renderMyCar(uid, entries, carId) {
+  todayCar = carId;
+  if (emp) return renderOwnCar(uid);
   const box = $('myCar');
   const c = carById(carId) || feed.state.cars.find((x) => x.driver === uid);
   box.hidden = !c;
@@ -223,3 +251,56 @@ export function renderMyCar(uid, entries, carId) {
 
 // Оновлювати картку водія, коли змінилась машина
 feed.subscribe((s) => { st = s; if (!$('mileageView').hidden && s.user) document.dispatchEvent(new CustomEvent('cars-changed')); });
+
+// Працівник: «Моя машина» — вписати / змінити свою машину (номер і модель)
+function renderOwnCar(uid, editing = false) {
+  const box = $('myCar');
+  box.hidden = false;
+  box.className = 'card my-car own-car';
+  if (personal && !editing) {
+    // Сьогодні на машині фірми — показуємо її (зі своєю машиною нижче)
+    const today = carById(todayCar);
+    if (today && !today.personal) {
+      const h = el('div', 'car-head');
+      h.append(plate(today.plate), el('b', 'car-model', today.model || ''), el('span', 'p-car-how today', 'машина фірми · сьогодні'));
+      box.replaceChildren(h);
+      const own = el('p', 'muted small-text my-car-km');
+      own.append(`Своя машина: ${personal.plate}${personal.model ? ' · ' + personal.model : ''} `);
+      const ch = el('button', 'btn link inline-link', 'змінити');
+      ch.type = 'button';
+      ch.addEventListener('click', () => renderOwnCar(uid, true));
+      own.append(ch);
+      box.append(own);
+      return;
+    }
+    const head = el('div', 'car-head');
+    head.append(plate(personal.plate), el('b', 'car-model', personal.model || 'Моя машина'));
+    const ch = el('button', 'btn small', 'Змінити');
+    ch.type = 'button';
+    ch.addEventListener('click', () => renderOwnCar(uid, true));
+    head.append(ch);
+    box.replaceChildren(head);
+    return;
+  }
+  const f = el('form', 'own-car-form');
+  f.noValidate = true;
+  f.append(iconText(el('h2', 'ih'), 'car', 'Моя машина'),
+    el('p', 'muted small-text', 'Впиши свою машину — кілометраж записуватиметься на неї.'));
+  const pl = Object.assign(el('input'), { placeholder: 'Номер, напр. WX12345', maxLength: 12, value: personal?.plate || '', autocomplete: 'off' });
+  pl.setAttribute('autocapitalize', 'characters');
+  const md = Object.assign(el('input'), { placeholder: 'Марка, модель (Dacia Jogger)', maxLength: 40, value: personal?.model || '', autocomplete: 'off' });
+  const err = el('p', 'err');
+  const btn = el('button', 'btn start', 'Зберегти машину');
+  f.append(pl, md, err, btn);
+  f.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const car = { plate: pl.value.toUpperCase().replace(/\s+/g, ''), model: md.value.trim().slice(0, 40) };
+    if (!car.plate) { err.textContent = 'Впиши номер машини.'; return; }
+    setEmpCar(uid, car);
+    cloud.setMyCar(uid, car).catch((x) => { console.error(x); err.textContent = 'Не вдалося зберегти: ' + (x?.message || x); });
+    document.dispatchEvent(new CustomEvent('cars-changed'));
+    document.dispatchEvent(new CustomEvent('own-car-changed'));
+  });
+  box.replaceChildren(f);
+  if (editing) pl.focus();
+}

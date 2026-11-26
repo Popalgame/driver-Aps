@@ -11,12 +11,13 @@ const users = [
   { id: 'new', role: 'pending' },
   { id: 'olha', role: 'hr', kind: 'hr' },
   { id: 'olhaOff', role: 'disabled', kind: 'hr' },
+  { id: 'emp1', role: 'driver', kind: 'emp' },
 ];
-const projects = [{ id: 'p1', name: 'Струмет', members: ['a', 'gone'], hr: ['olha'] }];
+const projects = [{ id: 'p1', name: 'Струмет', members: ['a', 'gone'], hr: ['olha'], emps: ['emp1'] }]; // працівникам — без оголошень проєкту
 
 test('отримувачі: усім, водіям, кадрам, проєкту, одній людині', () => {
   const r = (to, target, me = 'boss') => recipientsFor({ to, target, users, projects, me }).sort();
-  assert.deepEqual(r('all'), ['a', 'b', 'olha']);
+  assert.deepEqual(r('all'), ['a', 'b', 'emp1', 'olha']);
   assert.deepEqual(r('drivers'), ['a', 'b']);
   assert.deepEqual(r('hr'), ['olha']);
   assert.deepEqual(r('project', 'p1'), ['a', 'olha']); // закритий доступ — не отримує

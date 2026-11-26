@@ -188,6 +188,7 @@
       <!-- Персонал: перемикач «Водії / Кадри» -->
       <div class="seg staff-seg" id="staffSeg">
         <button type="button" data-s="drivers" class="on"><i data-i="users"></i> Водії <span id="cntDrivers" class="cnt"></span></button>
+        <button type="button" data-s="emp"><i data-i="car"></i> Працівники <span id="cntEmp" class="cnt"></span></button>
         <button type="button" data-s="hr"><i data-i="idcard"></i> Кадри <span id="cntHr" class="cnt"></span></button>
       </div>
       <section class="card period-card st-drv">
@@ -206,13 +207,14 @@
           <button id="mExportBtn" class="btn small"><i data-i="download"></i> Excel</button>
         </div>
       </section>
-      <button id="addDriverBtn" class="btn big start add st-drv" type="button"><i data-i="userPlus"></i> Додати водія</button>
-      <section id="pendingBox" class="card pending st-drv" hidden>
+      <button id="addDriverBtn" class="btn big start add st-drv" type="button"><i data-i="userPlus"></i> <span id="addDriverText">Додати водія</span></button>
+      <section id="pendingBox" class="card pending st-drv st-only-drv" hidden>
         <h2>Очікують підтвердження</h2>
         <ul id="pendingList" class="history"></ul>
       </section>
       <ul id="drivers" class="drivers st-drv"></ul>
       <p id="mEmpty" class="muted center st-drv" hidden>Ще немає жодного водія. Натисни «Додати водія».</p>
+      <p id="empHint" class="muted small-text center st-emp" hidden>Працівники фірми (на своїх авто або на машині фірми, до якої ти дав доступ): бачать лише «Мій час», «Кілометраж» і «Налаштування». Календар і оголошення проєкту — лише для водіїв.</p>
       <button id="addHrBtn" class="btn big start add st-hr" type="button"><i data-i="userPlus"></i> Додати кадровика</button>
       <section id="hrBox" class="card hr-box st-hr">
         <p class="muted small-text hr-note">Бачать лише календар і імена людей своїх проєктів — без годин і кілометражу. Додати до проєкту — у вкладці «Проєкти».</p>
@@ -325,6 +327,7 @@
           <div id="pEmail" class="muted small-text"></div>
           <div id="pStatus" class="badge"></div>
           <div id="pCar"></div>
+          <div id="pCarAccess" class="p-access" hidden></div>
         </div>
         <div class="p-live">
           <div id="pTimer" class="p-timer">—</div>
@@ -589,6 +592,12 @@
       <div id="projDrivers" class="checks"></div>
       <p id="projNoDrivers" class="muted small-text" hidden>Ще немає водіїв — натисни «Новий водій».</p>
       <div class="row field-row">
+        <div class="field-label">Працівники на проєкті</div>
+        <button id="projNewEmp" class="btn small" type="button"><i data-i="plus"></i> Працівник</button>
+      </div>
+      <div id="projEmps" class="checks"></div>
+      <p id="projNoEmps" class="muted small-text" hidden>Ще немає працівників.</p>
+      <div class="row field-row">
         <div class="field-label">Кадри на проєкті</div>
         <button id="projNewHr" class="btn small" type="button"><i data-i="plus"></i> Кадровик</button>
       </div>
@@ -681,6 +690,10 @@
         <label>Проєкт <select id="carProject"></select></label>
       </div>
       <p id="carKmNow" class="muted small-text"></p>
+      <div id="carAccessBox" hidden>
+        <div class="field-label">Доступ працівникам <small class="muted">(можуть вибрати цю машину)</small></div>
+        <div id="carAccess" class="checks"></div>
+      </div>
       <label>Нотатка <input id="carNote" type="text" maxlength="200" placeholder="VIN, колір, шини…" autocomplete="off"></label>
       <p id="carErrDlg" class="err"></p>
       <div class="row">

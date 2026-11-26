@@ -13,7 +13,7 @@ export function recipientsFor({ to, target, users = [], projects = [], me }) {
   const off = new Set(users.filter((u) => !ACTIVE.includes(u.role)).map((u) => u.id));
   let ids = [];
   if (to === 'all') ids = live.map((u) => u.id);
-  else if (to === 'drivers') ids = live.filter((u) => u.role === 'driver' && u.kind !== 'hr').map((u) => u.id);
+  else if (to === 'drivers') ids = live.filter((u) => u.role === 'driver' && !u.kind).map((u) => u.id);
   else if (to === 'hr') ids = live.filter((u) => u.role === 'hr').map((u) => u.id);
   else if (to === 'project') {
     const p = projects.find((x) => x.id === target);

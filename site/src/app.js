@@ -5,7 +5,7 @@ import { closeProfile, editedMark } from './profile.js';
 import { startMileage, stopMileage } from './mileage.js';
 import { startCalendar, stopCalendar, showDate } from './calendar.js';
 import { startFeed, stopFeed, setUserName, subscribe as onFeed } from './feed.js';
-import { driverCarEl } from './cars.js';
+import { driverCarEl, setEmpCar, getPersonal } from './cars.js';
 import { initInbox, startInbox, stopInbox } from './inbox.js';
 import { startMyTasks, stopMyTasks } from './mytasks.js';
 import { startProjects, stopProjects } from './projects.js';
@@ -75,7 +75,7 @@ const SHIFTS_CACHE = 'driver-shifts-cache-';
 function saveSession(p) {
   try {
     if (p && ACTIVE.includes(p.role)) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ uid: p.uid, name: p.name, email: p.email, role: p.role, photo: p.photo || null }));
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ uid: p.uid, name: p.name, email: p.email, role: p.role, kind: p.kind || null, photo: p.photo || null, myCar: p.myCar || null }));
     } else if (!p) {
       localStorage.removeItem(SESSION_KEY);
       for (const k of Object.keys(localStorage)) if (k.startsWith(SHIFTS_CACHE)) localStorage.removeItem(k);
@@ -306,8 +306,10 @@ const ROLE_NAMES = { manager: 'Керівник', driver: 'Водій', hr: 'К�
 
 // Меню за роллю. Кадри: лише Календар, Проєкти (свої, перегляд) і Налаштування.
 const homeTab = (role) => (role === 'hr' ? 'calendar' : 'driver');
-function roleNav(role) {
+// Працівник (kind 'emp'): лише «Мій час», «Кілометраж» і «Налаштування» (календар і проєкти — для водіїв)
+function roleNav(role, kind) {
   const nav = (tab) => document.querySelector(`.side-nav [data-tab=${tab}]`);
+  nav('calendar').hidden = kind === 'emp';
   nav('driver').hidden = role === 'hr';
   nav('mileage').hidden = role === 'hr';
   $('navManager').hidden = role !== 'manager';
@@ -438,7 +440,8 @@ function onProfile(p) {
   }
   store = cloudStore(p, cachingSetShifts(p.uid));
   for (const [op, arg] of pending) store[op](arg); // натискання, зроблені під час запуску
-  roleNav(p.role);
+  roleNav(p.role, p.kind);
+  setEmpCar(p.kind === 'emp' ? p.uid : null, p.myCar);
   if (!sameUser) { startFeed(p); startInbox(p); startMyTasks(); startNotices(p); if (p.role !== 'hr') startOdo(p); }
   if (!sameUser) setTab(homeTab(p.role));
   show('main');
@@ -452,11 +455,23 @@ initOdo(() => shifts);
 
 // «Мій час»: на якій машині водій сьогодні (або востаннє / закріплена)
 function renderNowCar() {
-  const n = profile && profile.role !== 'hr' ? driverCarEl(profile.uid, carKmList, true) : null;
+  const n = profile && profile.role !== 'hr' ? driverCarEl(profile.uid, [...carKmList, ...ownKm()], true, getPersonal()) : null;
   $('nowCar').replaceChildren(...(n ? [n] : []));
 }
 let carKmList = [];
-onFeed((st) => { carKmList = st.carKm; renderNowCar(); });
+onFeed((st) => {
+  carKmList = st.carKm;
+  renderNowCar();
+});
+// Працівник змінив свою машину — оновити «Мій час» і збережений профіль
+document.addEventListener('own-car-changed', () => {
+  if (profile) { profile.myCar = getPersonal() ? { plate: getPersonal().plate, model: getPersonal().model } : null; saveSession(profile); }
+  renderNowCar();
+});
+// Свої записи кілометражу з машиною (у працівника — своя машина, її немає серед машин фірми)
+let ownKmList = [];
+const ownKm = () => ownKmList;
+document.addEventListener('own-km', (e) => { ownKmList = e.detail || []; renderNowCar(); });
 // Ім'я змінено в налаштуваннях: оновити меню; нові зміни підписуються новим ім'ям
 onProfileName((p) => { fillUser(p); setUserName(p.name); });
 
@@ -485,7 +500,8 @@ async function boot() {
     profile = { ...cached, optimistic: true };
     fillUser(profile);
     store = queuedStore();
-    roleNav(cached.role);
+    roleNav(cached.role, cached.kind);
+    setEmpCar(cached.kind === 'emp' ? cached.uid : null, cached.myCar);
     startFeed(cached);
     startInbox(cached);
     startMyTasks();
