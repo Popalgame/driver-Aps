@@ -2,7 +2,7 @@
 // Номер, модель, хто їздить, страховка, техогляд, наступне ТО — з нагадуваннями.
 import * as cloud from './cloud.js';
 import * as feed from './feed.js';
-import { carKm } from './car-calc.js';
+import { carKm, driverCar } from './car-calc.js';
 import { avatarEl } from './photo.js';
 import { iconText } from './icons.js';
 import { COLORS } from './calendar-calc.js';
@@ -193,6 +193,18 @@ export function carChips(box, selected, uid, onPick) {
   }));
 }
 export const carById = (id) => feed.state.cars.find((c) => c.id === id) || null;
+
+// «Машина: [номер] модель · сьогодні» — для профілю водія (у керівника і в налаштуваннях водія)
+export function driverCarEl(uid, entries, self = false) {
+  const r = driverCar(feed.state.cars, entries, uid);
+  if (!r) return null;
+  const box = el('div', 'p-car');
+  box.append(iconText(el('span', 'muted small-text ih'), 'car', 'Машина:'), plate(r.car.plate));
+  if (r.car.model) box.append(el('span', 'p-car-model', r.car.model));
+  const how = { today: self ? 'сьогодні' : 'сьогодні їде', last: `востаннє ${shortFmt.format(r.at)}`, assigned: 'закріплена' }[r.how];
+  box.append(el('span', 'p-car-how ' + r.how, how));
+  return box;
+}
 
 // ---------- Водій: «Моя машина» у вкладці «Кілометраж» ----------
 // Машина, на якій він їде сьогодні (або звична / закріплена)

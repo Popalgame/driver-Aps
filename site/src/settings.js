@@ -2,6 +2,8 @@
 import * as cloud from './cloud.js';
 import { VERSION_LABEL } from './version.js';
 import { photoFromFile, setAvatar } from './photo.js';
+import { driverCarEl } from './cars.js';
+import * as feed from './feed.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
@@ -49,6 +51,7 @@ export function showSettings(p) {
     $('sUser').value = p.email || '';
     renderPhoto();
   }
+  renderCar();
   $('sPhotoMsg').textContent = '';
   for (const id of ['sNameMsg', 'sPassMsg']) $(id).textContent = '';
   $('sPassForm').reset();
@@ -79,6 +82,13 @@ $('sNameForm').addEventListener('submit', async (e) => {
     if (btn) btn.disabled = false;
   }
 });
+
+// ---------- Машина (на якій водій сьогодні / востаннє / закріплена) ----------
+function renderCar() {
+  const n = profile && profile.role !== 'hr' ? driverCarEl(profile.uid, feed.state.carKm, true) : null;
+  $('sCar').replaceChildren(...(n ? [n] : []));
+}
+feed.subscribe(() => { if (profile && !$('settingsView').hidden) renderCar(); });
 
 // ---------- Фото ----------
 function renderPhoto() {

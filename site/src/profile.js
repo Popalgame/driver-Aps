@@ -9,6 +9,7 @@ import { keyToDate, COLORS, peopleText } from './calendar-calc.js';
 import { odoRows, summary, drivenText, kmForDriver } from './mileage-calc.js';
 import { editedShift, checkShift, LONG_SHIFT } from './shift-edit.js';
 import { photoFromFile, setAvatar } from './photo.js';
+import { driverCarEl } from './cars.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -67,13 +68,13 @@ export function openProfile(id, userGetter, roleSetter, back) {
   kmEntries = [];
   kmMonth = startOfMonth();
   watchKmAll();
-  stopKm = cloud.watchMileage(id, (list) => { kmEntries = list; renderKm(); renderTabs(); }, (e) => console.error(e));
+  stopKm = cloud.watchMileage(id, (list) => { kmEntries = list; renderKm(); renderTabs(); renderCar(); }, (e) => console.error(e));
   stopWatch = cloud.watchMyShifts(id, (list) => { shifts = list; render(); }, (e) => {
     console.error(e);
     $('pMeta').textContent = '⚠ Не вдалося завантажити зміни: ' + (e?.message || e);
   });
   tick = setInterval(renderLive, 1000);
-  unsubFeed = feed.subscribe(renderTasks);
+  unsubFeed = feed.subscribe((st) => { renderTasks(st); renderCar(); });
 }
 
 export function closeProfile() {
@@ -202,6 +203,13 @@ function renderHead() {
   $('pAccess').textContent = off ? 'Відкрити доступ' : 'Закрити доступ';
   $('pAccess').className = 'btn small ' + (off ? 'start' : 'danger');
   $('profileView').classList.toggle('off', off);
+  renderCar();
+}
+
+// Машина водія: на якій сьогодні / востаннє / закріплена
+function renderCar() {
+  const n = uid ? driverCarEl(uid, kmEntries.map((e) => ({ ...e, uid }))) : null;
+  $('pCar').replaceChildren(...(n ? [n] : []));
 }
 
 function renderLive() {
