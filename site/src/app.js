@@ -12,7 +12,7 @@ import { startProjects, stopProjects } from './projects.js';
 import { startCars, stopCars } from './cars.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
-import { VERSION_LABEL } from './version.js';
+import { VERSION, VERSION_LABEL } from './version.js';
 import { hydrateIcons, setIconText } from './icons.js';
 import { initOdo, startOdo, stopOdo, needsOdo, askOdo, renderRemind } from './odo.js';
 import { startNotices, stopNotices, openNotice } from './notices.js';
@@ -20,6 +20,17 @@ import { initUpdates } from './update.js';
 import { setAvatar } from './photo.js';
 
 hydrateIcons();
+
+// Скрипти нової версії, а сторінка — старої (змішались файли) → повне оновлення, раз за сесію
+{
+  const page = document.querySelector('meta[name=app-version]')?.content || '';
+  let fixed = false;
+  try { fixed = sessionStorage.getItem('driver-ver-fix') !== null; } catch { /* немає доступу */ } // лише одна спроба за сесію
+  if (page !== VERSION && !fixed) {
+    try { sessionStorage.setItem('driver-ver-fix', VERSION); } catch { /* немає доступу */ }
+    window.appHardRefresh?.();
+  }
+}
 
 for (const el of document.querySelectorAll('[data-version]')) el.textContent = VERSION_LABEL;
 

@@ -83,6 +83,8 @@ $('sNameForm').addEventListener('submit', async (e) => {
   }
 });
 
+$('sHardRefresh').addEventListener('click', () => window.appHardRefresh?.());
+
 // ---------- Машина (на якій водій сьогодні / востаннє / закріплена) ----------
 function renderCar() {
   const n = profile && profile.role !== 'hr' ? driverCarEl(profile.uid, [...feed.state.carKm, ...ownKm], true, getPersonal()) : null;

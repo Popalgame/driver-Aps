@@ -18,3 +18,7 @@ test('package.json має ту саму версію', () => {
 test('кеш service worker названо за версією (інакше телефони не отримають оновлення)', () => {
   assert.match(read('../site/sw.js'), new RegExp(`const CACHE = 'driver-aps-${VERSION.replace(/\./g, '\\.')}'`));
 });
+
+test('сторінка index.html знає свою версію (захист від змішаних файлів)', () => {
+  assert.match(read('../site/index.html'), new RegExp(`<meta name="app-version" content="${VERSION.replace(/\./g, '\\.')}">`));
+});

@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#071330">
+  <!-- Версія цієї сторінки: якщо скрипти апки іншої версії (змішались файли) — апка оновиться повністю -->
+  <meta name="app-version" content="0.1.16">
   <title>Driver-Aps</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg?v=2" type="image/svg+xml">
@@ -97,18 +99,33 @@
       }
       window.bootStarted = function () { started = true; };
       window.bootFail = fail;
-      addEventListener('error', function (e) { fail(e.message); });
-      addEventListener('unhandledrejection', function (e) { fail(e.reason && e.reason.message); });
-      setTimeout(function () { fail(''); }, 15000);
-      document.getElementById('bootFix').addEventListener('click', function () {
-        this.disabled = true;
-        this.textContent = 'Очищую старі файли…';
+      // Повне оновлення: прибрати збережені файли апки і завантажити свіжі (вхід і дані лишаються)
+      window.appHardRefresh = function () {
         try { sessionStorage.setItem('driver-upd-rescue', '1'); } catch (e) { /* немає доступу */ }
         var done = function () { location.reload(); };
         var jobs = [];
         if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
         if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
         Promise.all(jobs).then(done, done);
+      };
+      // Сторінка однієї версії, а скрипти — іншої (змішались файли під час оновлення) → повне оновлення, раз за сесію
+      setTimeout(function () {
+        var want = (document.querySelector('meta[name=app-version]') || {}).content;
+        var shown = ((document.querySelector('[data-version]') || {}).textContent || '').trim();
+        var fixed = false;
+        try { fixed = sessionStorage.getItem('driver-ver-fix') !== null; } catch (e) { /* немає доступу */ } // лише одна спроба за сесію
+        if (want && shown && shown.split(' ')[0] !== want && !fixed) {
+          try { sessionStorage.setItem('driver-ver-fix', want); } catch (e) { /* немає доступу */ }
+          window.appHardRefresh();
+        }
+      }, 3000);
+      addEventListener('error', function (e) { fail(e.message); });
+      addEventListener('unhandledrejection', function (e) { fail(e.reason && e.reason.message); });
+      setTimeout(function () { fail(''); }, 15000);
+      document.getElementById('bootFix').addEventListener('click', function () {
+        this.disabled = true;
+        this.textContent = 'Очищую старі файли…';
+        window.appHardRefresh();
       });
     })();
   </script>
@@ -514,6 +531,8 @@
         <p class="muted small-text">Це рання (альфа) версія: апка активно розвивається, можливі зміни й недоліки. Повідомляй про помилки керівнику.</p>
         <p class="muted small-text">Облік робочого часу водіїв. Надішли це посилання водієві, щоб він відкрив апку:</p>
         <div class="row wrap"><code id="sAppUrl" class="url"></code><button id="sCopyUrl" class="btn small" type="button">Скопіювати посилання</button></div>
+        <p class="muted small-text">Щось виглядає дивно або не оновилось? Оновлення заново завантажить апку — вхід і дані збережуться.</p>
+        <button id="sHardRefresh" class="btn" type="button"><i data-i="refresh"></i> Оновити апку повністю</button>
       </section>
     </div>
 
