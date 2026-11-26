@@ -276,12 +276,39 @@
           <button id="pFixActive" class="btn small p-fix" type="button" hidden><i data-i="stop"></i> Закінчити зміну за водія</button>
         </div>
         <div class="p-actions">
-          <button id="pCsv" class="btn small" type="button"><i data-i="download"></i> Excel</button>
           <button id="pAccess" class="btn small danger" type="button" hidden></button>
         </div>
       </section>
 
-      <div class="p-grid">
+      <!-- Розділи сторінки водія: натиснув плитку — відкрився лише цей розділ -->
+      <nav id="pTabs" class="p-tabs" aria-label="Розділи">
+        <button type="button" data-sec="shifts" data-short="Зміни" style="--t1:#60a5fa;--t2:#2563eb">
+          <span class="pt-ico"><i data-i="pencil"></i></span>
+          <span class="pt-txt"><b>Поправити / додати зміну</b><small id="ptShifts">Забув почати чи закінчити</small></span>
+          <span class="pt-chev">›</span>
+        </button>
+        <button type="button" data-sec="hours" data-short="Години" style="--t1:#fbbf24;--t2:#d97706">
+          <span class="pt-ico"><i data-i="clock"></i></span>
+          <span class="pt-txt"><b>Години роботи</b><small id="ptHours"></small></span>
+          <span class="pt-chev">›</span>
+        </button>
+        <button type="button" data-sec="km" data-short="Кілометраж" style="--t1:#2dd4bf;--t2:#0d9488">
+          <span class="pt-ico"><i data-i="gauge"></i></span>
+          <span class="pt-txt"><b>Кілометраж</b><small id="ptKm"></small></span>
+          <span class="pt-chev">›</span>
+        </button>
+        <button type="button" data-sec="tasks" data-short="Завдання" style="--t1:#a78bfa;--t2:#7c3aed">
+          <span class="pt-ico"><i data-i="userCheck"></i></span>
+          <span class="pt-txt"><b>Завдання</b><small id="ptTasks"></small></span>
+          <span class="pt-chev">›</span>
+        </button>
+      </nav>
+
+      <div class="row p-sec-head" data-psec="hours">
+        <h2 class="ih"><i data-i="clock"></i> Години роботи</h2>
+        <button id="pCsv" class="btn small" type="button"><i data-i="download"></i> Excel</button>
+      </div>
+      <div class="p-grid" data-psec="hours">
         <div class="p-col">
           <section class="stats p-stats" id="pStats"></section>
           <p id="pMeta" class="muted small-text p-meta"></p>
@@ -300,12 +327,13 @@
         </section>
       </div>
 
-      <section class="card p-tasks" id="pTasks" hidden>
+      <section class="card p-tasks" id="pTasks" data-psec="tasks">
         <div class="row"><h2 class="ih"><i data-i="userCheck"></i> Завдання</h2><span id="pTasksSum" class="muted small-text"></span></div>
         <ul id="pTasksList" class="cal-list"></ul>
+        <p id="pTasksEmpty" class="muted" hidden>Водій ще не брав жодного завдання.</p>
       </section>
 
-      <section class="card p-km">
+      <section class="card p-km" data-psec="km">
         <div class="row"><h2 class="ih"><i data-i="gauge"></i> Кілометраж</h2><button id="pkExport" class="btn small" type="button"><i data-i="download"></i> Excel за місяць</button></div>
         <div class="month-bar">
           <button id="pkPrev" class="btn small" type="button" aria-label="Попередній місяць">‹</button>
@@ -326,7 +354,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" data-psec="shifts">
         <div class="row"><h2>Історія змін</h2><span id="pCount" class="muted small-text"></span></div>
         <button id="pAddShift" class="btn small p-add-shift" type="button"><i data-i="plus"></i> Додати зміну (забув натиснути «Почати»)</button>
         <p class="muted small-text p-hint">Натисни на зміну, щоб виправити початок, кінець або перерви.</p>

@@ -824,3 +824,48 @@ html.big-text .nt-text { font-size: 19px; }
 .shift .n.edited svg.i { width: 14px; height: 14px; color: inherit; }
 .ms-note { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.45); color: #fcd34d; border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 4px 0 12px; }
 .ms-note[hidden] { display: none; }
+
+/* ---------- Сторінка водія: розділи-плитки ---------- */
+.p-tabs { display: grid; gap: 10px; margin-bottom: 16px; scroll-margin-top: 12px; }
+.p-tabs button {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; text-align: left;
+  background: var(--card); color: var(--text); border: 1px solid transparent; border-radius: 16px;
+  font: inherit; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.p-tabs button:hover { border-color: var(--line); }
+.p-tabs button.on { border-color: var(--t2); background: linear-gradient(90deg, color-mix(in srgb, var(--t2) 22%, transparent), transparent 70%), var(--card); }
+.pt-ico {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 13px; flex: none; color: #fff;
+  background: linear-gradient(140deg, var(--t1), var(--t2)); box-shadow: 0 6px 16px -6px var(--t2), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.pt-ico svg.i { width: 24px; height: 24px; vertical-align: 0; }
+.pt-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pt-txt b { font-size: 17px; }
+.pt-txt small { color: var(--muted); font-size: 13px; margin-top: 3px; }
+.pt-txt small.warn { color: #fcd34d; }
+.pt-chev { color: var(--muted); font-size: 24px; transition: transform .15s; }
+.p-tabs button.on .pt-chev { transform: rotate(90deg); color: var(--text); }
+/* Вибрано розділ — плитки компактніші, щоб розділ було видно одразу */
+.p-tabs.picked { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.p-tabs.picked button::after { content: attr(data-short); font-weight: 700; font-size: 13px; line-height: 1.2; }
+.p-tabs.picked .pt-txt { display: none; }
+.p-tabs.picked button { flex-direction: column; gap: 6px; padding: 10px 6px; text-align: center; }
+.p-tabs.picked .pt-ico { width: 36px; height: 36px; border-radius: 11px; }
+.p-tabs.picked .pt-ico svg.i { width: 19px; height: 19px; }
+.p-tabs.picked .pt-txt b { font-size: 13px; line-height: 1.2; }
+.p-tabs.picked .pt-txt small, .p-tabs.picked .pt-chev { display: none; }
+.p-tabs.picked button:not(.on) { opacity: .7; }
+[data-psec].sec-off { display: none !important; }
+@media (min-width: 900px) {
+  .p-tabs, .p-tabs.picked { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .p-tabs.picked button::after { content: none; }
+  .p-tabs.picked .pt-txt { display: flex; }
+  .p-tabs.picked button { flex-direction: row; text-align: left; padding: 14px 16px; gap: 12px; }
+  .p-tabs.picked .pt-txt small { display: block; }
+  .p-tabs.picked .pt-txt b { font-size: 16px; }
+  .p-tabs.picked button:not(.on) { opacity: .75; }
+}
+html.big-text .pt-txt b { font-size: 19px; }
+html.big-text .pt-txt small { font-size: 15px; }
+.p-sec-head { margin: 0 0 12px; }
+.p-sec-head h2 { margin: 0; }

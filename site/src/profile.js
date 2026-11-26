@@ -49,11 +49,12 @@ export function openProfile(id, userGetter, roleSetter, back) {
   shown = HISTORY_STEP;
   shifts = [];
   $('profileView').hidden = false;
+  setSec(savedSec());
   scrollTo(0, 0);
   render();
   kmEntries = [];
   kmMonth = startOfMonth();
-  stopKm = cloud.watchMileage(id, (list) => { kmEntries = list; renderKm(); }, (e) => console.error(e));
+  stopKm = cloud.watchMileage(id, (list) => { kmEntries = list; renderKm(); renderTabs(); }, (e) => console.error(e));
   stopWatch = cloud.watchMyShifts(id, (list) => { shifts = list; render(); }, (e) => {
     console.error(e);
     $('pMeta').textContent = '⚠ Не вдалося завантажити зміни: ' + (e?.message || e);
@@ -98,8 +99,52 @@ function user() {
 
 const active = () => shifts.find((s) => s.end == null);
 
+// ---------- Розділи: «Поправити / додати зміну», «Години роботи», «Кілометраж» ----------
+// Відкритий розділ пам'ятає цей пристрій — наступний водій відкривається на тому ж розділі
+let sec = null;
+const SEC_KEY = 'driver-profile-sec';
+function savedSec() {
+  try { const v = localStorage.getItem(SEC_KEY); return ['shifts', 'hours', 'km', 'tasks'].includes(v) ? v : null; } catch { return null; }
+}
+function setSec(v) {
+  sec = v;
+  try { if (v) localStorage.setItem(SEC_KEY, v); else localStorage.removeItem(SEC_KEY); } catch { /* немає доступу */ }
+  for (const b of $('pTabs').querySelectorAll('button')) {
+    b.classList.toggle('on', b.dataset.sec === v);
+    b.setAttribute('aria-expanded', String(b.dataset.sec === v));
+  }
+  $('pTabs').classList.toggle('picked', !!v);
+  for (const n of $('profileView').querySelectorAll('[data-psec]')) n.classList.toggle('sec-off', n.dataset.psec !== v);
+}
+for (const b of $('pTabs').querySelectorAll('button')) {
+  b.addEventListener('click', () => {
+    setSec(sec === b.dataset.sec ? null : b.dataset.sec); // повторне натискання — згорнути
+    if (sec) $('pTabs').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+}
+
+// Короткий підсумок на кожній плитці
+function renderTabs() {
+  const now = Date.now();
+  const s = active();
+  const st = driverStats(shifts, now);
+  const long = s && now - s.start > LONG_SHIFT;
+  const fixed = shifts.filter((x) => x.editedBy && x.editedAt >= +startOfMonth()).length;
+  $('ptShifts').textContent = long ? `⚠ Зміна йде ${Math.floor((now - s.start) / 3600e3)} год — закінчити?`
+    : fixed ? `Виправлено цього місяця: ${fixed}` : 'Забув почати чи закінчити';
+  $('ptShifts').classList.toggle('warn', !!long);
+  $('ptHours').textContent = `Сьогодні ${hm(st.today)} · місяць ${hm(st.month)}`;
+  const m = +startOfMonth();
+  const km = summary(kmEntries, m, +addMonths(new Date(m), 1)).km;
+  const today = +startOfDay();
+  const noKm = shifts.some((x) => x.start >= today) && !kmEntries.some((e) => e.type === 'odo' && e.at === today);
+  $('ptKm').textContent = noKm ? '⚠ За сьогодні не вписано' : `Цей місяць: ${new Intl.NumberFormat('uk-UA').format(km)} км`;
+  $('ptKm').classList.toggle('warn', noKm);
+}
+
 function render() {
   if (!uid) return;
+  renderTabs();
   renderHead();
   renderLive();
   renderStats();
@@ -287,11 +332,16 @@ const tDone = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'short',
 function renderTasks(st) {
   if (!uid) return;
   const mine = st.events.filter((e) => e.need && e.driver === uid);
-  $('pTasks').hidden = !mine.length;
-  if (!mine.length) return;
   const month = +startOfMonth();
   const doneMonth = mine.filter((e) => e.status === 'done' && e.doneAt >= month).length;
   const doneAll = mine.filter((e) => e.status === 'done').length;
+  const now = mine.find((e) => e.status === 'onway') || mine.find((e) => e.status === 'taken');
+  $('ptTasks').textContent = now ? `${now.status === 'onway' ? 'Зараз в дорозі' : 'Взяв'}: «${now.title}»`
+    : mine.length ? `Виконано цього місяця: ${doneMonth}` : 'Ще не брав завдань';
+  $('pTasksEmpty').hidden = mine.length > 0;
+  $('pTasksSum').textContent = '';
+  $('pTasksList').replaceChildren();
+  if (!mine.length) return;
   $('pTasksSum').textContent = `виконано цього місяця: ${doneMonth} · усього: ${doneAll}`;
   const order = { onway: 0, taken: 1, done: 2 };
   const list = mine.sort((a, b) => (order[a.status] - order[b.status]) || (b.date + (b.time || '')).localeCompare(a.date + (a.time || ''))).slice(0, 20);
