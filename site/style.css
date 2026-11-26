@@ -889,3 +889,10 @@ html.big-text .pt-txt small { font-size: 15px; }
 .upd-dlg.failed .upd-fill { background: var(--red); }
 .update-bar { max-width: calc(100vw - 24px); }
 .update-bar span { overflow: hidden; text-overflow: ellipsis; }
+
+/* Налаштування → Встановити апку */
+.inst-sub { font-size: 15px; margin: 12px 0 4px; }
+.inst-ios .steps { padding: 0 0 4px 22px; }
+.inst-ios .note { margin: 6px 0; }
+#instBtn { margin-top: 8px; }
+.inst-hint { margin: 10px 0 0; }

@@ -406,9 +406,22 @@
         <h2 class="ih"><i data-i="phone"></i> Встановити апку</h2>
         <div id="instTodo">
           <p class="muted small-text">Апка з'явиться на головному екрані з іконкою, відкриватиметься на весь екран і працюватиме без інтернету.</p>
-          <div class="inst-btns">
-            <button id="instBtn" class="btn start" type="button" hidden>Встановити</button>
-            <button id="instHow" class="btn" type="button">Як встановити</button>
+          <!-- iPhone / iPad: кнопки встановлення немає — лише інструкція -->
+          <div id="instIos" class="inst-ios" hidden>
+            <h3 class="inst-sub">iPhone / iPad</h3>
+          <p class="note ios-chrome-note" hidden>Ти в Chrome. Найпростіше — відкрий цю сторінку в <b>Safari</b>. У Chrome теж можна: кнопка «Поділитися» <span class="ico-share"><i data-i="share"></i></span> праворуч в адресному рядку → «На екран „Додому“».</p>
+          <ol class="steps">
+            <li>Відкрий <b>driver-aps.web.app</b> у <b>Safari</b>.</li>
+            <li>Натисни <b>«Поділитися»</b> <span class="ico-share"><i data-i="share"></i></span> — квадрат зі стрілкою вгору внизу екрана.<br><small>У новому Safari спершу натисни <b>«•••»</b> внизу праворуч, потім «Поділитися».</small></li>
+            <li>Прокрути список униз і вибери <b>«На екран „Додому“»</b> <span class="ico-share"><i data-i="addSquare"></i></span>.</li>
+            <li>Перевір, що увімкнено <b>«Відкрити як вебпрограму»</b> (якщо є), і натисни <b>«Додати»</b>.</li>
+            <li>Готово: іконка <b>Driver-Aps</b> з'явиться на головному екрані. Відкривай апку з неї.</li>
+          </ol>
+          </div>
+          <!-- Android і комп'ютер: одна кнопка -->
+          <div id="instOther" hidden>
+            <button id="instBtn" class="btn big start" type="button"><i data-i="download"></i> <span id="instBtnText">Скачати на ПК</span></button>
+            <p id="instHint" class="muted small-text inst-hint" hidden></p>
           </div>
         </div>
         <p id="instDone" class="msg ok" hidden><i data-i="checkCircle"></i> Апку встановлено на цей пристрій.</p>
@@ -564,39 +577,18 @@
   </dialog>
 
   <dialog id="installDlg" class="install-dlg">
-    <h3 class="ih"><i data-i="phone"></i> Як встановити Driver-Aps</h3>
-    <button id="dlgInstallBtn" class="btn big start" type="button" hidden>Встановити зараз</button>
+    <h3 class="ih"><i data-i="phone"></i> Як встановити на iPhone</h3>
 
-    <details data-os="ios">
-      <summary>iPhone / iPad</summary>
-      <p id="iosChromeNote" class="note" hidden>Ти в Chrome. Найпростіше — відкрий цю сторінку в <b>Safari</b>. У Chrome теж можна: кнопка «Поділитися» <span class="ico-share"><i data-i="share"></i></span> праворуч в адресному рядку → «На екран „Додому“».</p>
-      <ol class="steps">
-        <li>Відкрий <b>driver-aps.web.app</b> у <b>Safari</b>.</li>
-        <li>Натисни <b>«Поділитися»</b> <span class="ico-share"><i data-i="share"></i></span> — квадрат зі стрілкою вгору внизу екрана.<br><small>У новому Safari спершу натисни <b>«•••»</b> внизу праворуч, потім «Поділитися».</small></li>
-        <li>Прокрути список униз і вибери <b>«На екран „Додому“»</b> <span class="ico-share"><i data-i="addSquare"></i></span>.</li>
-        <li>Перевір, що увімкнено <b>«Відкрити як вебпрограму»</b> (якщо є), і натисни <b>«Додати»</b>.</li>
-        <li>Готово: іконка <b>Driver-Aps</b> з'явиться на головному екрані. Відкривай апку з неї.</li>
-      </ol>
-    </details>
-
-    <details data-os="android">
-      <summary>Android</summary>
-      <ol class="steps">
-        <li>Відкрий <b>driver-aps.web.app</b> у <b>Chrome</b>.</li>
-        <li>Натисни <b>⋮</b> (три крапки) угорі праворуч.</li>
-        <li>Вибери <b>«Встановити застосунок»</b> або <b>«Додати на головний екран»</b>.</li>
-        <li>Підтверди <b>«Встановити»</b> — іконка з'явиться на головному екрані.</li>
-      </ol>
-    </details>
-
-    <details data-os="desktop">
-      <summary>Комп'ютер (Chrome / Edge)</summary>
-      <ol class="steps">
-        <li>Відкрий <b>driver-aps.web.app</b> у Chrome або Edge.</li>
-        <li>В адресному рядку праворуч натисни значок <b>«Встановити»</b> (монітор зі стрілкою).</li>
-        <li>Підтверди <b>«Встановити»</b> — апка відкриватиметься в окремому вікні.</li>
-      </ol>
-    </details>
+    <div class="inst-ios">
+          <p class="note ios-chrome-note" hidden>Ти в Chrome. Найпростіше — відкрий цю сторінку в <b>Safari</b>. У Chrome теж можна: кнопка «Поділитися» <span class="ico-share"><i data-i="share"></i></span> праворуч в адресному рядку → «На екран „Додому“».</p>
+          <ol class="steps">
+            <li>Відкрий <b>driver-aps.web.app</b> у <b>Safari</b>.</li>
+            <li>Натисни <b>«Поділитися»</b> <span class="ico-share"><i data-i="share"></i></span> — квадрат зі стрілкою вгору внизу екрана.<br><small>У новому Safari спершу натисни <b>«•••»</b> внизу праворуч, потім «Поділитися».</small></li>
+            <li>Прокрути список униз і вибери <b>«На екран „Додому“»</b> <span class="ico-share"><i data-i="addSquare"></i></span>.</li>
+            <li>Перевір, що увімкнено <b>«Відкрити як вебпрограму»</b> (якщо є), і натисни <b>«Додати»</b>.</li>
+            <li>Готово: іконка <b>Driver-Aps</b> з'явиться на головному екрані. Відкривай апку з неї.</li>
+          </ol>
+    </div>
 
     <div class="row"><span></span><button id="installClose" class="btn small" type="button">Закрити</button></div>
   </dialog>
