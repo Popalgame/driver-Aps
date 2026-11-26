@@ -133,7 +133,7 @@ $('pAccess').addEventListener('click', () => {
 function user() {
   const u = getUser(uid) || {};
   const fromShift = shifts.find((s) => s.driverName)?.driverName;
-  return { name: u.name || fromShift || 'Без імені', email: u.email || '', role: u.role || '', photo: u.photo || null };
+  return { name: u.name || fromShift || 'Без імені', email: u.email || '', role: u.role || '', kind: u.kind || '', photo: u.photo || null };
 }
 
 const active = () => shifts.find((s) => s.end == null);

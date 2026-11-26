@@ -8,5 +8,5 @@ export {
 } from 'firebase/auth';
 export {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator,
-  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot, writeBatch,
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, onSnapshot, writeBatch,
 } from 'firebase/firestore';

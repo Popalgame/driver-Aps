@@ -84,7 +84,10 @@ service cloud.firestore {
       // Не себе й не інших керівників; керівником нікого не робить.
       allow update: if isManager() && request.auth.uid != uid
         && resource.data.role != 'manager'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role', 'photo'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role', 'photo', 'kind'])
+        // Тип: водій (без kind) ↔ працівник (kind 'emp'); кадри не змінюються
+        && (request.resource.data.get('kind', '') == resource.data.get('kind', '')
+          || (resource.data.get('kind', '') != 'hr' && request.resource.data.get('kind', '') in ['', 'emp']))
         && validPhoto(request.resource.data.get('photo', null))
         && request.resource.data.role in ['driver', 'disabled', 'hr']
         && (request.resource.data.role != 'hr' || resource.data.get('kind', '') == 'hr')

@@ -480,3 +480,17 @@ test('працівник на своєму авто: створює керівн
   await assertSucceeds(updateDoc(doc(m, 'users/emp1'), { role: 'disabled' }));
   await assertSucceeds(updateDoc(doc(m, 'users/emp1'), { role: 'driver' }));
 });
+
+test('тип: керівник змінює водія на працівника і назад; кадри — ні', async () => {
+  const { deleteField } = await import('firebase/firestore');
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/olha'), { ...profile('Ольга', 'hr'), kind: 'hr' });
+  });
+  const m = as('boss');
+  await assertSucceeds(updateDoc(doc(m, 'users/alice'), { kind: 'emp' }));
+  await assertSucceeds(updateDoc(doc(m, 'users/alice'), { kind: deleteField() }));
+  await assertFails(updateDoc(doc(m, 'users/alice'), { kind: 'hr' }));
+  await assertFails(updateDoc(doc(m, 'users/olha'), { kind: 'emp' }));
+  await assertFails(updateDoc(doc(m, 'users/olha'), { kind: deleteField() }));
+  await assertFails(updateDoc(doc(as('alice'), 'users/alice'), { kind: 'emp' }));
+});

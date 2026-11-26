@@ -1003,3 +1003,6 @@ html.big-text .pt-txt small { font-size: 15px; }
 .acc-chip.on { border-color: #22c55e; color: #86efac; background: rgba(34,197,94,.12); }
 .acc-chip:disabled { cursor: default; }
 .pchip.emp { border-color: #0284c7; color: #bae6fd; }
+
+/* Персонал: «→ у працівники» / «→ у водії» */
+.kind-btn { margin-top: 8px; padding: 6px 10px; font-size: 13px; }

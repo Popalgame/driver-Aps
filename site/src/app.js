@@ -392,7 +392,7 @@ function offerMigration() {
 function onProfile(p) {
   saveSession(p);
   const wasOptimistic = !!profile?.optimistic;
-  const sameUser = !!(p && profile && p.uid === profile.uid && p.role === profile.role);
+  const sameUser = !!(p && profile && p.uid === profile.uid && p.role === profile.role && (p.kind || '') === (profile.kind || ''));
 
   // Нічого не змінилось (повторний виклик) — лише оновити ім'я
   if (sameUser && !wasOptimistic && !p.error) {

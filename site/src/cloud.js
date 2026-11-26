@@ -70,7 +70,7 @@ export function onUser(cb) {
       }
       clearTimeout(slow);
       const p = { uid: user.uid, ...snap.data() };
-      const key = `${p.role}|${p.name}|${(p.photo || '').length}|${(p.photo || '').slice(-24)}`;
+      const key = `${p.role}|${p.kind || ''}|${p.name}|${(p.photo || '').length}|${(p.photo || '').slice(-24)}`;
       if (key === lastRole) return;
       lastRole = key;
       cb(p);
@@ -373,4 +373,10 @@ export async function setMyCar(uid, car) {
 export async function patchCar(id, patch) {
   await ready;
   return fb.updateDoc(fb.doc(db, 'cars', id), { ...patch, updatedAt: Date.now() });
+}
+
+// Тип людини: '' — водій, 'emp' — працівник (role лишається 'driver')
+export async function setUserKind(uid, kind) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'users', uid), { kind: kind || fb.deleteField() });
 }

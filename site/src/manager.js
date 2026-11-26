@@ -170,6 +170,25 @@ $('driverForm').addEventListener('submit', async (e) => {
   }
 });
 
+// Змінити тип: водій ↔ працівник. Проєкти переносимо: водій — у members (календар, оголошення),
+// працівник — у emps (лише у списку проєкту)
+async function changeKind(uid, name, kind) {
+  const text = kind === 'emp'
+    ? `Зробити «${name}» працівником? Бачитиме лише «Мій час», «Кілометраж» і «Налаштування»; календаря й оголошень проєктів не буде. У проєктах — у списку «Працівники».`
+    : `Зробити «${name}» водієм? Бачитиме календар, завдання й оголошення своїх проєктів.`;
+  if (!confirm(text)) return;
+  try {
+    await cloud.setUserKind(uid, kind);
+    for (const p of feed.state.projects) {
+      const inM = (p.members || []).includes(uid), inE = (p.emps || []).includes(uid);
+      if (kind === 'emp' && inM) await cloud.putProject({ ...p, members: p.members.filter((x) => x !== uid), emps: [...new Set([...(p.emps || []), uid])] });
+      if (!kind && inE) await cloud.putProject({ ...p, emps: p.emps.filter((x) => x !== uid), members: [...new Set([...(p.members || []), uid])] });
+    }
+  } catch (e) {
+    showError(e);
+  }
+}
+
 function setRole(uid, role, ask) {
   if (ask && !confirm(ask)) return;
   cloud.setUserRole(uid, role).catch(showError);
@@ -293,6 +312,16 @@ function render() {
     head.append(left, right);
     li.append(head);
 
+    // Тип: водій ↔ працівник — прямо зі списку
+    if (r.role === 'driver' || r.role === 'disabled') {
+      const toEmp = r.kind !== 'emp';
+      const kb = el('button', 'btn small kind-btn', toEmp ? '→ у працівники' : '→ у водії');
+      kb.type = 'button';
+      kb.title = toEmp ? 'Зробити працівником (свій час і кілометраж, без календаря)' : 'Зробити водієм (календар, завдання, оголошення проєктів)';
+      kb.addEventListener('click', (ev) => { ev.stopPropagation(); changeKind(r.uid, r.name, toEmp ? 'emp' : ''); });
+      kb.addEventListener('keydown', (ev) => ev.stopPropagation());
+      left.append(kb);
+    }
     li.append(el('span', 'chev', '›'));
     li.tabIndex = 0;
     li.setAttribute('role', 'button');

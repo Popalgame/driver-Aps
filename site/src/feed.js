@@ -29,7 +29,9 @@ export function startFeed(profile) {
     if (key !== eventsFor) {
       stopEvents?.();
       eventsFor = key;
-      stopEvents = cloud.watchEvents(state.projects.map((p) => p.id), manager, (ev) => { state.events = ev; emit(); }, fail);
+      // Людину щойно прибрали з проєкту — події цього проєкту вже недоступні; це не помилка
+      const evFail = (e) => (e?.code === 'permission-denied' ? console.warn('events: доступ змінився', e) : fail(e));
+      stopEvents = cloud.watchEvents(state.projects.map((p) => p.id), manager, (ev) => { state.events = ev; emit(); }, evFail);
     }
     emit();
   }, fail));
