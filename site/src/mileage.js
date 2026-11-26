@@ -2,7 +2,9 @@
 import * as cloud from './cloud.js';
 import { startOfDay, startOfMonth } from './time.js';
 import { iconText } from './icons.js';
-import { odoRows, summary, previousOdo, dayKey, drivenText } from './mileage-calc.js';
+import { odoRows, summary, previousOdo, dayKey, drivenText, defaultCar, withCarKm, kmForDriver } from './mileage-calc.js';
+import { renderMyCar, carChips, carById } from './cars.js';
+import * as feed from './feed.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -24,6 +26,9 @@ let entries = [];
 let stop = null;
 let month = startOfMonth(); // вибраний місяць: від нього залежать підсумки, історія й Excel
 let editing = null;     // запис у діалозі
+let carSel = null;      // машина, на якій водій їде сьогодні (id)
+// Свої записи + показники машин від інших водіїв
+const allKm = () => (user ? withCarKm(entries, feed.state.carKm, user.uid) : entries);
 
 // ---------- Сховище ----------
 function loadLocal() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch { return []; } }
@@ -74,12 +79,14 @@ $('odoForm').addEventListener('submit', (e) => {
   const v = Math.round(Number(String($('odoInput').value).replace(/\s/g, '').replace(',', '.')));
   if (!Number.isFinite(v) || v <= 0) { msg('Впиши кілометраж числом, наприклад 184520.', false); return; }
   const today = +startOfDay();
-  const prev = previousOdo(entries, today);
-  if (prev && v < prev.km && !confirm(`Це менше, ніж попередній запис (${km(prev.km)} за ${dateFmt.format(prev.at)}). Зберегти все одно?`)) return;
+  const car = carById(carSel);
+  if (feed.state.cars.length && !car) { msg('Вибери машину, на якій їдеш сьогодні.', false); return; }
+  const prev = previousOdo(allKm(), today, car ? car.id : undefined);
+  if (prev && v < prev.km && !confirm(`Це менше, ніж попередній запис${car ? ' на ' + car.plate : ''} (${km(prev.km)} за ${dateFmt.format(prev.at)}). Зберегти все одно?`)) return;
   if (prev && v - prev.km > 3000 && !confirm(`Від попереднього запису +${km(v - prev.km)}. Точно правильно?`)) return;
   const existing = entries.find((x) => x.id === odoId(today));
-  put({ id: odoId(today), type: 'odo', at: today, km: v, liters: null, amount: null, note: existing?.note || '' });
-  msg(`✓ Збережено: ${km(v)}`, true);
+  put({ id: odoId(today), type: 'odo', at: today, km: v, liters: null, amount: null, note: existing?.note || '', ...(car ? { car: car.id, plate: car.plate } : {}) });
+  msg(`✓ Збережено: ${km(v)}${car ? ' · ' + car.plate : ''}`, true);
 });
 
 function msg(t, ok) { $('odoMsg').textContent = t; $('odoMsg').className = 'msg ' + (ok ? 'ok' : 'err'); }
@@ -192,23 +199,38 @@ $('kmExportAll').addEventListener('click', async () => {
 
 // ---------- Відображення ----------
 function render() {
+  pickCar();
+  if (user) renderMyCar(user.uid, entries, carSel);
   renderToday();
   renderStats();
   renderHistory();
+}
+
+// Машина на сьогодні: уже вписана сьогодні → її; інакше вибрана / звична / закріплена
+function pickCar() {
+  const cars = feed.state.cars;
+  if (!user || !cars.length) { carSel = null; $('odoCarBox').hidden = true; return; }
+  const today = entries.find((e) => e.type === 'odo' && e.at === +startOfDay());
+  if (today?.car && carById(today.car)) carSel = today.car;
+  else if (!carById(carSel)) carSel = defaultCar(entries, cars, user.uid);
+  $('odoCarBox').hidden = false;
+  carChips($('odoCars'), carSel, user.uid, (id) => { carSel = id; msg('', true); render(); });
 }
 
 function renderToday() {
   const today = +startOfDay();
   $('odoDate').textContent = cap(dayFmt.format(today));
   const cur = entries.find((e) => e.type === 'odo' && e.at === today);
-  const prev = previousOdo(entries, today);
+  const car = carById(carSel);
+  const prev = previousOdo(allKm(), today, car ? car.id : undefined);
   const input = $('odoInput');
   if (document.activeElement !== input) input.value = cur ? cur.km : '';
   $('odoSave').textContent = cur ? 'Оновити' : 'Зберегти';
   const parts = [];
-  if (prev) parts.push(`Попередній запис: ${km(prev.km)} (${dateFmt.format(prev.at)})`);
-  if (prev && cur) parts.push(`відтоді проїхано ${kmDiff(cur.km - prev.km)}`);
-  if (!prev && !cur) parts.push('Перший запис — впиши, скільки зараз на одометрі.');
+  if (prev) parts.push(`Попередній запис${car ? ' на ' + car.plate : ''}: ${km(prev.km)} (${dateFmt.format(prev.at)})`);
+  if (prev && cur && (!car || !cur.car || cur.car === car.id)) parts.push(`відтоді проїхано ${kmDiff(cur.km - prev.km)}`);
+  if (car && !prev && !cur) parts.push(`На ${car.plate} ти ще не вписував кілометраж — впиши, скільки зараз на одометрі.`);
+  if (!car && !prev && !cur) parts.push('Перший запис — впиши, скільки зараз на одометрі.');
   $('odoHint').textContent = parts.join(' · ');
   $('odoDone').hidden = !cur;
 }
@@ -217,6 +239,10 @@ function renderStats() {
   fillMonthSelect();
   const [from, to] = range();
   const s = summary(entries, from, to);
+  if (user) { // пробіг — до наступного показника машини (його міг вписати інший водій)
+    s.km = kmForDriver(allKm(), user.uid, from, to);
+    s.per100 = s.km > 0 && s.liters > 0 ? (s.liters / s.km) * 100 : null;
+  }
   const tiles = [
     ['Пробіг', km(s.km)],
     ['Заправок', s.count ? `${s.count}` + (s.liters ? ` · ${num2.format(s.liters)} л` : '') : '0'],
@@ -235,7 +261,7 @@ function renderStats() {
 function renderHistory() {
   const [from, to] = range();
   const inP = (e) => e.at >= from && e.at < to;
-  const rowsById = new Map(odoRows(entries).map((r) => [r.id, r]));
+  const rowsById = new Map(odoRows(allKm()).map((r) => [r.id, r]));
   const list = entries.filter(inP).sort((a, b) => b.at - a.at || (a.type === 'odo' ? 1 : -1));
   $('kmHistTitle').textContent = `Історія · ${monthFmt.format(month).replace(/ \d{4}.*$/, '')}`;
   $('kmEmpty').textContent = isCurrent()
@@ -256,7 +282,8 @@ function renderHistory() {
     const right = el('div', 'd');
     if (e.type === 'odo') {
       left.append(iconText(el('div', 't'), 'gauge', km(e.km)));
-      if (e.note) left.append(el('div', 'n', e.note));
+      const meta = [e.plate, e.note].filter(Boolean).join(' · ');
+      if (meta) left.append(el('div', 'n', meta));
       const r = rowsById.get(e.id);
       right.textContent = r?.driven != null ? drivenText(r) : '';
       if (r?.driven == null) right.append(el('span', 'muted small-text', e.at === +startOfDay() ? 'сьогодні' : ''));
@@ -272,3 +299,6 @@ function renderHistory() {
     ul.append(li);
   }
 }
+
+// Керівник змінив машину (страховка, ТО) — оновити картку «Моя машина»
+document.addEventListener('cars-changed', () => { if (user) render(); });

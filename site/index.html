@@ -27,9 +27,10 @@
     <div class="side-brand"><img src="icon.svg" alt="" width="44" height="44"><span>Driver-Aps</span></div>
     <nav class="side-nav">
       <button type="button" data-tab="driver" class="on"><span class="ico"><i data-i="clock"></i></span>Мій час</button>
-      <button type="button" data-tab="mileage"><span class="ico"><i data-i="car"></i></span>Кілометраж</button>
+      <button type="button" data-tab="mileage"><span class="ico"><i data-i="gauge"></i></span>Кілометраж</button>
       <button type="button" data-tab="calendar"><span class="ico"><i data-i="calendar"></i></span>Календар</button>
       <button type="button" data-tab="manager" id="navManager" hidden><span class="ico"><i data-i="users"></i></span>Персонал</button>
+      <button type="button" data-tab="cars" id="navCars" hidden><span class="ico"><i data-i="car"></i></span>Машини</button>
       <button type="button" data-tab="projects" id="navProjects" hidden><span class="ico"><i data-i="folder"></i></span>Проєкти</button>
       <button type="button" data-tab="settings"><span class="ico"><i data-i="sliders"></i></span>Налаштування</button>
     </nav>
@@ -222,8 +223,14 @@
 
     <!-- Кілометраж і заправки -->
     <div id="mileageView" class="mileage" hidden>
+      <!-- Машина водія (якщо керівник закріпив) -->
+      <section id="myCar" class="card my-car" hidden></section>
       <section class="card odo-card">
         <div class="row"><h2 class="ih"><i data-i="gauge"></i> Кілометраж зранку</h2><span id="odoDate" class="muted small-text"></span></div>
+        <div id="odoCarBox" class="odo-cars" hidden>
+          <div class="field-label">На якій машині сьогодні?</div>
+          <div id="odoCars" class="car-chips"></div>
+        </div>
         <form id="odoForm" class="odo-form" novalidate>
           <label class="odo-field">
             <input id="odoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="напр. 184520" aria-label="Кілометраж, км">
@@ -290,6 +297,15 @@
     </div>
 
     <!-- Проєкти (керівник): які водії працюють на якому проєкті -->
+    <!-- Машини (керівник): документи, ТО, хто їздить -->
+    <div id="carsView" hidden>
+      <button id="carAdd" class="btn big start add" type="button"><i data-i="plus"></i> Додати машину</button>
+      <div id="carFilter" class="cal-chips car-filter"></div>
+      <ul id="carList" class="drivers car-list"></ul>
+      <p id="carEmpty" class="muted center empty" hidden><span class="empty-ico"><i data-i="car"></i></span><span>Ще немає жодної машини. Додай першу — номер, модель, водія і проєкт.</span></p>
+      <p id="carErr" class="err center"></p>
+    </div>
+
     <div id="projectsView" hidden>
       <button id="projAdd" class="btn big start add" type="button"><i data-i="plus"></i> Новий проєкт</button>
       <ul id="projList" class="drivers"></ul>
@@ -301,7 +317,8 @@
     <div id="profileView" class="profile" hidden>
       <button id="pBack" class="btn back" type="button">‹ Усі водії</button>
       <section class="card p-head">
-        <div class="avatar big" id="pAvatar"></div>
+        <button class="avatar big photo-pick" id="pAvatar" type="button" title="Змінити фото водія" aria-label="Змінити фото водія"></button>
+        <input id="pPhotoFile" type="file" accept="image/*" hidden>
         <div class="p-who">
           <h2 id="pName"></h2>
           <div id="pEmail" class="muted small-text"></div>
@@ -429,6 +446,15 @@
 
       <section class="card" id="sProfile">
         <h2>Профіль</h2>
+        <div class="photo-row">
+          <button id="sPhotoBtn" class="avatar xl photo-pick" type="button" aria-label="Змінити фото"></button>
+          <div class="photo-acts">
+            <button id="sPhotoSet" class="btn small" type="button"><i data-i="camera"></i> Додати фото</button>
+            <button id="sPhotoDel" class="btn small link-danger" type="button" hidden>Прибрати фото</button>
+            <p id="sPhotoMsg" class="msg"></p>
+          </div>
+          <input id="sPhotoFile" type="file" accept="image/*" hidden>
+        </div>
         <form id="sNameForm" class="sform">
           <label>Ім'я та прізвище <input id="sName" maxlength="60" autocomplete="name"></label>
           <p class="muted small-text"><span id="sEmail"></span> · <span id="sRole"></span></p>
@@ -639,6 +665,51 @@
     </form>
   </dialog>
 
+  <!-- Картка машини -->
+  <dialog id="carDlg">
+    <form id="carForm" novalidate>
+      <h3 id="carTitle" class="ih"><i data-i="car"></i> Машина</h3>
+      <div class="two">
+        <label>Номер <input id="carPlate" type="text" maxlength="12" placeholder="AA1234BB" autocomplete="off" autocapitalize="characters"></label>
+        <label>Марка, модель <input id="carModel" type="text" maxlength="40" placeholder="VW Crafter" autocomplete="off"></label>
+      </div>
+      <div class="two">
+        <label>Водій <select id="carDriver"></select></label>
+        <label>Проєкт <select id="carProject"></select></label>
+      </div>
+      <p id="carKmNow" class="muted small-text"></p>
+      <label>Нотатка <input id="carNote" type="text" maxlength="200" placeholder="VIN, колір, шини…" autocomplete="off"></label>
+      <p id="carErrDlg" class="err"></p>
+      <div class="row">
+        <button id="carDel" class="btn danger small" type="button">Видалити</button>
+        <span>
+          <button id="carCancel" class="btn small" type="button">Скасувати</button>
+          <button class="btn small start" type="submit">Зберегти</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Редагування фото: наблизити, посунути, повернути -->
+  <dialog id="phDlg" class="ph-dlg">
+    <h3 class="ih"><i data-i="camera"></i> Фото</h3>
+    <p class="muted small-text">Посунь фото пальцем, наблизь повзунком або двома пальцями.</p>
+    <div class="ph-stage"><canvas id="phCanvas"></canvas></div>
+    <div class="ph-tools">
+      <span class="muted">−</span>
+      <input id="phZoom" type="range" min="1" max="4" step="0.01" value="1" aria-label="Наблизити">
+      <span class="muted">+</span>
+      <button id="phRotate" class="btn small" type="button" title="Повернути"><i data-i="refresh"></i></button>
+    </div>
+    <div class="row">
+      <span></span>
+      <span>
+        <button id="phCancel" class="btn small" type="button">Скасувати</button>
+        <button id="phSave" class="btn small start" type="button">Зберегти фото</button>
+      </span>
+    </div>
+  </dialog>
+
   <!-- Керівник виправляє зміну водія -->
   <dialog id="msDlg">
     <form id="msForm" novalidate>
@@ -667,6 +738,10 @@
     <form id="odoAskForm" novalidate>
       <h3 class="ih"><i data-i="gauge"></i> Кілометраж на початок дня</h3>
       <p id="odoAskDate" class="muted small-text"></p>
+      <div id="odoAskCarBox" class="odo-cars" hidden>
+        <div class="field-label">На якій машині сьогодні?</div>
+        <div id="odoAskCars" class="car-chips"></div>
+      </div>
       <label>Скільки зараз на одометрі?
         <input id="odoAskInput" class="odo-big" type="text" inputmode="numeric" autocomplete="off" placeholder="напр. 152 400">
       </label>

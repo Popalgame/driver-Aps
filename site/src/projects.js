@@ -8,12 +8,13 @@ import { dayKey } from './mileage-calc.js';
 import { COLORS, nextColor } from './calendar-calc.js';
 import { openAddDriver } from './manager.js';
 import { iconText } from './icons.js';
+import { plate } from './cars.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-let projects = [], users = [], events = [], role = '';
+let projects = [], users = [], events = [], cars = [], role = '';
 let unsub = null;
 let editing = null, color = 0;
 let extra = new Map(); // нові водії, створені з діалогу проєкту (ще не в списку users)
@@ -35,7 +36,7 @@ export function startProjects() {
   unsub?.();
   $('projErr').textContent = '';
   unsub = feed.subscribe((st) => {
-    projects = st.projects; users = st.users; events = st.events; role = st.user?.role || '';
+    projects = st.projects; users = st.users; events = st.events; cars = st.cars || []; role = st.user?.role || '';
     if (st.error) showError(st.error);
     render();
   });
@@ -76,6 +77,14 @@ function render() {
       hr.append(iconText(el('span', 'muted small-text ih'), 'idcard', 'Кадри:'));
       for (const uid of p.hr) hr.append(el('span', 'pchip hr', nameOf(uid, p) || '…'));
       li.append(hr);
+    }
+    // Машини проєкту (бачить керівник)
+    const pc = cars.filter((c) => c.project === p.id).sort((a, b) => a.plate.localeCompare(b.plate));
+    if (pc.length) {
+      const row = el('div', 'proj-cars');
+      row.append(iconText(el('span', 'muted small-text ih'), 'car', 'Машини:'));
+      for (const c of pc) row.append(plate(c.plate));
+      li.append(row);
     }
     const ahead = events.filter((e) => e.project === p.id && e.date >= today).length;
     const foot = el('div', 'row proj-foot');

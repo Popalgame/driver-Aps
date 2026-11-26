@@ -398,3 +398,64 @@ test('подія: не більше 8 людей (9-те місце — воді
   await assertFails(updateDoc(doc(a, 'events/old'), { people: 13, updatedAt: 3 }));
   await assertSucceeds(updateDoc(doc(a, 'events/old'), { people: 8, updatedAt: 4 }));
 });
+
+test('фото профілю: своє — так; керівник — будь-кому; чуже — ні; не фото — ні', async () => {
+  const photo = 'data:image/jpeg;base64,' + 'A'.repeat(20000);
+  await assertSucceeds(updateDoc(doc(as('alice'), 'users/alice'), { photo }));
+  await assertSucceeds(updateDoc(doc(as('alice'), 'users/alice'), { photo: null }));
+  await assertFails(updateDoc(doc(as('alice'), 'users/bob'), { photo }));
+  await assertSucceeds(updateDoc(doc(as('boss'), 'users/bob'), { photo }));
+  await assertFails(updateDoc(doc(as('alice'), 'users/alice'), { photo: 'data:text/html;base64,AAAA' }));
+  await assertFails(updateDoc(doc(as('alice'), 'users/alice'), { photo: 'data:image/jpeg;base64,' + 'A'.repeat(40000) }));
+  await assertFails(updateDoc(doc(as('alice'), 'users/alice'), { photo, role: 'manager' }));
+});
+
+test('машини: веде керівник; водії бачать усі; кадри — ні', async () => {
+  const car = (driver, extra = {}) => ({ plate: 'AA1234BB', model: 'VW Crafter', driver, driverName: 'Аліса', note: '', createdAt: 1, updatedAt: 1, ...extra });
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/olha'), { ...profile('Ольга', 'hr'), kind: 'hr' });
+  });
+  const m = as('boss');
+  await assertSucceeds(setDoc(doc(m, 'cars/c1'), car('alice')));
+  await assertSucceeds(setDoc(doc(m, 'cars/c2'), car('bob', { plate: 'BC5678AA' })));
+  await assertFails(setDoc(doc(m, 'cars/bad'), car('alice', { insuranceUntil: '2026-12-06' }))); // страховку прибрано
+  await assertFails(setDoc(doc(m, 'cars/bad2'), car('alice', { plate: '' })));
+  await assertSucceeds(setDoc(doc(m, 'cars/c3'), car(null, { plate: 'KA0001AA', project: 'p1' })));
+  await assertFails(setDoc(doc(m, 'cars/bad3'), car(null, { project: 5 })));
+  const a = as('alice');
+  await assertSucceeds(getDoc(doc(a, 'cars/c1')));
+  await assertSucceeds(getDocs(query(collection(a, 'cars'), where('driver', '==', 'alice'))));
+  await assertSucceeds(getDoc(doc(a, 'cars/c2'))); // водій бачить усі — вибирає, на якій їде
+  await assertSucceeds(getDocs(collection(a, 'cars')));
+  await assertFails(updateDoc(doc(a, 'cars/c1'), { model: 'хак' }));
+  await assertFails(setDoc(doc(a, 'cars/mine'), car('alice')));
+  await assertFails(getDoc(doc(as('olha'), 'cars/c1')));
+  await assertSucceeds(getDocs(collection(m, 'cars')));
+  await assertSucceeds(deleteDoc(doc(m, 'cars/c2')));
+});
+
+test('кілометраж з машиною: car і plate', async () => {
+  const a = as('alice');
+  const e = { uid: 'alice', type: 'odo', at: 1, km: 1000, liters: null, amount: null, note: '', updatedAt: 1 };
+  await assertSucceeds(setDoc(doc(a, 'mileage/m1'), { ...e, car: 'c1', plate: 'AA1234BB' }));
+  await assertSucceeds(setDoc(doc(a, 'mileage/m2'), e));
+  await assertFails(setDoc(doc(a, 'mileage/m3'), { ...e, car: 5 }));
+  await assertFails(setDoc(doc(a, 'mileage/m4'), { ...e, plate: 'X'.repeat(20) }));
+});
+
+test('показники одометра машин видно всім водіям, решту записів — ні', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    const e = { uid: 'bob', type: 'odo', at: 5, km: 1100, liters: null, amount: null, note: 'моє', updatedAt: 1 };
+    await setDoc(doc(db, 'mileage/b1'), { ...e, car: 'c1', plate: 'AA1234BB' });
+    await setDoc(doc(db, 'mileage/b2'), e);
+    await setDoc(doc(db, 'mileage/b3'), { ...e, type: 'fuel', km: null, liters: 40, car: 'c1' });
+  });
+  const a = as('alice');
+  await assertSucceeds(getDocs(query(collection(a, 'mileage'), where('type', '==', 'odo'), where('car', 'in', ['c1', 'c2']))));
+  await assertSucceeds(getDoc(doc(a, 'mileage/b1')));
+  await assertFails(getDoc(doc(a, 'mileage/b2')));
+  await assertFails(getDoc(doc(a, 'mileage/b3')));
+  await assertFails(getDocs(query(collection(a, 'mileage'), where('car', 'in', ['c1']))));
+  await assertFails(getDoc(doc(as('newbie'), 'mileage/b1')));
+});

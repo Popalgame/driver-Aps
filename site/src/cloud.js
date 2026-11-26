@@ -70,8 +70,9 @@ export function onUser(cb) {
       }
       clearTimeout(slow);
       const p = { uid: user.uid, ...snap.data() };
-      if (p.role === lastRole) return;
-      lastRole = p.role;
+      const key = `${p.role}|${p.name}|${(p.photo || '').length}|${(p.photo || '').slice(-24)}`;
+      if (key === lastRole) return;
+      lastRole = key;
       cb(p);
     }, (e) => {
       clearTimeout(slow);
@@ -323,4 +324,41 @@ export async function markNoticeRead(id, uid) {
 export async function removeNotice(id) {
   await ready;
   return fb.deleteDoc(fb.doc(db, 'notices', id));
+}
+
+// ---------- Фото профілю ----------
+// photo — data:image/jpeg;base64,… або null (прибрати). Свій — будь-хто; чужий — керівник.
+export async function setUserPhoto(uid, photo) {
+  await ready;
+  return fb.updateDoc(fb.doc(db, 'users', uid), { photo: photo || null });
+}
+
+// ---------- Машини ----------
+// cars/{id} — див. car-calc.js. Змінює лише керівник; водії бачать усі (вибирають, на якій їдуть).
+export function watchCars(uid, role, cb, onError) {
+  return watchWhenReady(() => {
+    const col = fb.collection(db, 'cars');
+    // Водій бачить усі машини — щоб вибрати, на якій їде сьогодні
+    return fb.onSnapshot(col, (snap) => cb(snap.docs.map(fromDoc)), onError);
+  });
+}
+
+export async function putCar(c) {
+  await ready;
+  const { id, ...data } = c;
+  return fb.setDoc(fb.doc(db, 'cars', id), { ...data, updatedAt: Date.now() });
+}
+
+export async function removeCar(id) {
+  await ready;
+  return fb.deleteDoc(fb.doc(db, 'cars', id));
+}
+
+// Показники одометра машин від усіх водіїв (лише odo з машиною — без заправок і нотаток інших)
+export function watchCarMileage(carIds, cb, onError) {
+  return watchWhenReady(() => {
+    if (!carIds.length) { cb([]); return () => {}; }
+    const q = fb.query(fb.collection(db, 'mileage'), fb.where('type', '==', 'odo'), fb.where('car', 'in', carIds.slice(0, 30)));
+    return fb.onSnapshot(q, (snap) => cb(snap.docs.map(fromDoc)), onError);
+  });
 }

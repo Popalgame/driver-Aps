@@ -896,3 +896,72 @@ html.big-text .pt-txt small { font-size: 15px; }
 .inst-ios .note { margin: 6px 0; }
 #instBtn { margin-top: 8px; }
 .inst-hint { margin: 10px 0 0; }
+
+/* ---------- Фото людей ---------- */
+.avatar { background-size: cover; background-position: center; overflow: hidden; }
+.avatar.has-photo { background-color: var(--card); }
+.avatar.xl { width: 84px; height: 84px; font-size: 34px; }
+.avatar.sm { width: 36px; height: 36px; font-size: 15px; }
+.photo-row { display: flex; align-items: center; gap: 16px; margin: 4px 0 14px; }
+.photo-pick { border: 0; cursor: pointer; padding: 0; font: inherit; font-weight: 800; color: #fff; position: relative; }
+.photo-acts { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.photo-acts .msg { margin: 0; }
+.link-danger { background: transparent; color: var(--red); padding-left: 0; }
+.d-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.d-name-row .dname { min-width: 0; }
+.p-head .photo-pick::after {
+  content: ''; position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23eef3ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5A2 2 0 0 1 6 6.5h1.8l1.4-2h5.6l1.4 2H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center / 14px no-repeat;
+  border: 2px solid var(--card);
+}
+
+/* Редагування фото */
+.ph-dlg { width: min(360px, calc(100vw - 24px)); }
+.ph-stage { position: relative; width: 280px; height: 280px; margin: 8px auto 12px; border-radius: 16px; overflow: hidden; background: var(--bg); }
+.ph-stage canvas { width: 280px; height: 280px; display: block; touch-action: none; cursor: grab; }
+.ph-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 50%; box-shadow: 0 0 0 200px rgba(7,19,48,.65); outline: 2px solid rgba(255,255,255,.8); outline-offset: -2px; }
+.ph-tools { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ph-tools input[type=range] { flex: 1; accent-color: var(--accent); }
+
+/* ---------- Машини ---------- */
+.side-nav [data-tab=cars] { --t1: #38bdf8; --t2: #0284c7; }
+.car { cursor: pointer; border-left: 5px solid var(--c, var(--line)); }
+.my-car-km { margin: 0; }
+
+.car-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.car-model { font-size: 17px; }
+.plate {
+  display: inline-flex; align-items: stretch; border-radius: 6px; overflow: hidden; background: #fff; color: #111;
+  border: 2px solid #111; font-family: ui-monospace, 'DejaVu Sans Mono', monospace; letter-spacing: .06em; line-height: 1;
+}
+.plate-ua { background: #1d4ed8; color: #fde047; font-size: 10px; font-weight: 700; padding: 4px 4px 0; display: flex; align-items: flex-end; }
+.plate b { padding: 5px 8px; font-size: 18px; }
+.car-who { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.car-km { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.car-note { margin: 8px 0 0; }
+@media (min-width: 1100px) {
+  #carList { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+  #carList .car { margin-bottom: 0; }
+}
+
+.car-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.car-filter[hidden] { display: none; }
+.car-proj { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid var(--c); color: var(--text); background: color-mix(in srgb, var(--c) 18%, transparent); }
+.car-proj .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+.proj-cars { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -4px 0 10px; }
+.proj-cars .plate b { font-size: 13px; padding: 3px 6px; }
+.proj-cars .plate-ua { font-size: 8px; }
+
+/* Вибір машини (кілометраж зранку) */
+.odo-cars { margin: 8px 0 10px; }
+.car-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.car-chip {
+  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 10px; border-radius: 12px;
+  border: 2px solid var(--line); background: var(--bg); color: var(--muted); font: inherit; cursor: pointer;
+}
+.car-chip small { font-size: 12px; }
+.car-chip .plate b { font-size: 15px; padding: 4px 6px; }
+.car-chip .plate-ua { font-size: 8px; }
+.car-chip.on { border-color: var(--accent); background: rgba(59,130,246,.16); color: var(--text); box-shadow: 0 0 0 3px rgba(59,130,246,.25); }
+.car-chip:not(.on) .plate { opacity: .75; }
+.pk-plate { display: block; font-size: 11px; color: var(--muted); letter-spacing: .04em; }

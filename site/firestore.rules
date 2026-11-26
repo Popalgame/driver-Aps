@@ -37,9 +37,15 @@ service cloud.firestore {
       return n is string && n.size() >= 1 && n.size() <= 60;
     }
 
+    // Фото профілю — маленьке JPEG прямо в документі (див. src/photo.js)
+    function validPhoto(p) {
+      return p == null || (p is string && p.size() <= 40000 && p.matches('data:image/jpeg;base64,[A-Za-z0-9+/=]+'));
+    }
+
     function validProfile(d) {
-      return d.keys().hasOnly(['name', 'email', 'role', 'kind', 'createdAt'])
+      return d.keys().hasOnly(['name', 'email', 'role', 'kind', 'createdAt', 'photo'])
         && validName(d.name)
+        && validPhoto(d.get('photo', null))
         && (!('kind' in d) || d.kind == 'hr')
         && d.email is string && d.email.size() <= 200
         && d.createdAt is number;
@@ -61,14 +67,16 @@ service cloud.firestore {
 
       // Свій профіль: лише ім'я
       allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
-        && validName(request.resource.data.name);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photo'])
+        && validName(request.resource.data.name)
+        && validPhoto(request.resource.data.get('photo', null));
 
       // Керівник: підтвердити, закрити / відновити доступ, перейменувати.
       // Не себе й не інших керівників; керівником нікого не робить.
       allow update: if isManager() && request.auth.uid != uid
         && resource.data.role != 'manager'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'role', 'photo'])
+        && validPhoto(request.resource.data.get('photo', null))
         && request.resource.data.role in ['driver', 'disabled', 'hr']
         && (request.resource.data.role != 'hr' || resource.data.get('kind', '') == 'hr')
         && (request.resource.data.role != 'driver' || resource.data.get('kind', '') != 'hr')
@@ -107,8 +115,10 @@ service cloud.firestore {
 
     // Кілометраж (показник одометра зранку) і заправки (для заправки достатньо дати)
     function validMileage(d) {
-      return d.keys().hasOnly(['uid', 'type', 'at', 'km', 'liters', 'amount', 'note', 'updatedAt'])
+      return d.keys().hasOnly(['uid', 'type', 'at', 'km', 'liters', 'amount', 'note', 'updatedAt', 'car', 'plate'])
         && d.uid == request.auth.uid
+        && (d.get('car', null) == null || (d.car is string && d.car.size() <= 64))
+        && (d.get('plate', null) == null || (d.plate is string && d.plate.size() <= 12))
         && d.type in ['odo', 'fuel']
         && d.at is number
         && (d.km == null || (d.km is number && d.km >= 0 && d.km < 10000000))
@@ -121,6 +131,8 @@ service cloud.firestore {
 
     match /mileage/{id} {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isManager());
+      // Показники одометра машин (від усіх водіїв) — щоб пробіг рахувався до наступного показника машини
+      allow read: if isActive() && resource.data.type == 'odo' && resource.data.get('car', null) is string;
       allow create: if isActive() && validMileage(request.resource.data);
       allow update: if isActive() && resource.data.uid == request.auth.uid
         && validMileage(request.resource.data);
@@ -225,6 +237,25 @@ service cloud.firestore {
         && taskChangeOk()
         && (isManager() || isMember(resource.data.project));
       allow delete: if isManager() || isMember(resource.data.project);
+    }
+
+    // ---------- Машини ----------
+    // Картку машини веде керівник; водії бачать усі машини, щоб вибрати, на якій їдуть.
+    function validCar(d) {
+      return d.keys().hasOnly(['plate', 'model', 'driver', 'driverName', 'project', 'note', 'createdAt', 'updatedAt'])
+        && (d.get('project', null) == null || d.project is string)
+        && d.plate is string && d.plate.size() >= 1 && d.plate.size() <= 12
+        && d.model is string && d.model.size() <= 40
+        && (d.driver == null || d.driver is string)
+        && d.driverName is string && d.driverName.size() <= 60
+        && d.note is string && d.note.size() <= 200
+        && d.createdAt is number && d.updatedAt is number;
+    }
+
+    match /cars/{id} {
+      allow read: if isActive();
+      allow create, update: if isManager() && validCar(request.resource.data);
+      allow delete: if isManager();
     }
 
     // ---------- Оголошення ----------

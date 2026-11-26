@@ -8,6 +8,7 @@ import { startFeed, stopFeed, setUserName } from './feed.js';
 import { initInbox, startInbox, stopInbox } from './inbox.js';
 import { startMyTasks, stopMyTasks } from './mytasks.js';
 import { startProjects, stopProjects } from './projects.js';
+import { startCars, stopCars } from './cars.js';
 import { prefs, applyPrefs, showSettings, onProfileName } from './settings.js';
 import { refresh as refreshInstall, isInstalled } from './install.js';
 import { VERSION_LABEL } from './version.js';
@@ -15,6 +16,7 @@ import { hydrateIcons, setIconText } from './icons.js';
 import { initOdo, startOdo, stopOdo, needsOdo, askOdo, renderRemind } from './odo.js';
 import { startNotices, stopNotices, openNotice } from './notices.js';
 import { initUpdates } from './update.js';
+import { setAvatar } from './photo.js';
 
 hydrateIcons();
 
@@ -72,7 +74,7 @@ const SHIFTS_CACHE = 'driver-shifts-cache-';
 function saveSession(p) {
   try {
     if (p && ACTIVE.includes(p.role)) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ uid: p.uid, name: p.name, email: p.email, role: p.role }));
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ uid: p.uid, name: p.name, email: p.email, role: p.role, photo: p.photo || null }));
     } else if (!p) {
       localStorage.removeItem(SESSION_KEY);
       for (const k of Object.keys(localStorage)) if (k.startsWith(SHIFTS_CACHE)) localStorage.removeItem(k);
@@ -272,7 +274,7 @@ function show(view) {
 
 function setTab(tab) {
   for (const b of document.querySelectorAll('.side-nav button')) b.classList.toggle('on', b.dataset.tab === tab);
-  $('pageTitle').textContent = { manager: 'Персонал', settings: 'Налаштування', mileage: 'Кілометраж', calendar: 'Календар', projects: 'Проєкти' }[tab] || 'Мій час';
+  $('pageTitle').textContent = { cars: 'Машини', manager: 'Персонал', settings: 'Налаштування', mileage: 'Кілометраж', calendar: 'Календар', projects: 'Проєкти' }[tab] || 'Мій час';
   closeMenu();
   closeProfile();
   $('driverView').hidden = tab !== 'driver';
@@ -281,6 +283,8 @@ function setTab(tab) {
   $('mileageView').hidden = tab !== 'mileage';
   $('calendarView').hidden = tab !== 'calendar';
   $('projectsView').hidden = tab !== 'projects';
+  $('carsView').hidden = tab !== 'cars';
+  if (tab === 'cars' && profile?.role === 'manager') startCars(); else stopCars();
   if (tab === 'calendar') startCalendar(profile); else stopCalendar();
   if (tab === 'projects' && (profile?.role === 'manager' || profile?.role === 'hr')) startProjects(profile); else stopProjects();
   if (tab === 'mileage') startMileage(profile); else stopMileage();
@@ -307,12 +311,13 @@ function roleNav(role) {
   nav('mileage').hidden = role === 'hr';
   $('navManager').hidden = role !== 'manager';
   $('navProjects').hidden = role !== 'manager' && role !== 'hr';
+  $('navCars').hidden = role !== 'manager';
 }
 function fillUser(p) {
   $('userName').textContent = p ? p.name : 'Цей пристрій';
   $('sideRole').textContent = p ? (ROLE_NAMES[p.role] || '') : 'Без входу';
   $('sideEmail').textContent = p?.email || '';
-  $('sideAvatar').textContent = (p?.name || '•').trim().charAt(0).toUpperCase();
+  setAvatar($('sideAvatar'), p?.name, p?.photo);
   $('logoutBtn').hidden = !p;
 }
 
@@ -389,6 +394,7 @@ function onProfile(p) {
   // Нічого не змінилось (повторний виклик) — лише оновити ім'я
   if (sameUser && !wasOptimistic && !p.error) {
     profile.name = p.name;
+    profile.photo = p.photo || null;
     fillUser(profile);
     return;
   }
@@ -406,7 +412,7 @@ function onProfile(p) {
 
   const pending = sameUser ? (store?.queued || []) : [];
   store?.stop();
-  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); stopInbox(); stopMyTasks(); stopNotices(); stopOdo(); stopFeed(); }
+  if (!sameUser) { stopManager(); stopCalendar(); stopProjects(); stopCars(); stopInbox(); stopMyTasks(); stopNotices(); stopOdo(); stopFeed(); }
   profile = p;
   if (!p) {
     store = null;

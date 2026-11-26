@@ -6,8 +6,9 @@ import { iconText } from './icons.js';
 import * as feed from './feed.js';
 import { STATUS, statusText } from './tasks.js';
 import { keyToDate, COLORS, peopleText } from './calendar-calc.js';
-import { odoRows, summary, drivenText } from './mileage-calc.js';
+import { odoRows, summary, drivenText, kmForDriver } from './mileage-calc.js';
 import { editedShift, checkShift, LONG_SHIFT } from './shift-edit.js';
+import { photoFromFile, setAvatar } from './photo.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => Object.assign(document.createElement(tag), { className: cls || '', textContent: text ?? '' });
@@ -28,6 +29,17 @@ let stopWatch = null;
 let stopKm = null;
 let kmEntries = [];
 let kmMonth = null;
+// Записи всіх водіїв за вибраний місяць (+40 днів): пробіг машини рахується до наступного показника
+// цієї машини, навіть якщо його вписав інший водій
+let kmAll = [], stopKmAll = null;
+function watchKmAll() {
+  stopKmAll?.();
+  kmAll = [];
+  const [from, to] = kmRange();
+  stopKmAll = cloud.watchAllMileage(from, to + 40 * 86400000, (list) => { kmAll = list; renderKm(); renderTabs(); }, (e) => console.error(e));
+}
+// Записи для підрахунку пробігу: усі водії (якщо вже завантажились), інакше — лише цей водій
+const kmCalc = () => (kmAll.length ? [...kmAll.filter((e) => e.uid !== uid), ...kmEntries] : kmEntries);
 let tick = null;
 let weekOffset = 0;   // 0 — цей тиждень, -1 — минулий…
 let shown = HISTORY_STEP;
@@ -54,6 +66,7 @@ export function openProfile(id, userGetter, roleSetter, back) {
   render();
   kmEntries = [];
   kmMonth = startOfMonth();
+  watchKmAll();
   stopKm = cloud.watchMileage(id, (list) => { kmEntries = list; renderKm(); renderTabs(); }, (e) => console.error(e));
   stopWatch = cloud.watchMyShifts(id, (list) => { shifts = list; render(); }, (e) => {
     console.error(e);
@@ -69,6 +82,8 @@ export function closeProfile() {
   stopWatch = null;
   stopKm?.();
   stopKm = null;
+  stopKmAll?.();
+  stopKmAll = null;
   clearInterval(tick);
   uid = null;
   $('profileView').hidden = true;
@@ -76,6 +91,29 @@ export function closeProfile() {
 
 // Дані водія змінились (ім'я, доступ) — перемалювати шапку
 export function refreshProfile() { if (uid) renderHead(); }
+
+// Керівник додає / змінює фото водія: натиснув на кружечок
+$('pAvatar').addEventListener('click', () => {
+  if (user().photo && confirm('Прибрати фото водія? (Скасувати — вибрати нове)')) {
+    cloud.setUserPhoto(uid, null).catch((e) => alert('Не вдалося: ' + (e?.message || e)));
+    return;
+  }
+  $('pPhotoFile').click();
+});
+$('pPhotoFile').addEventListener('change', async () => {
+  const f = $('pPhotoFile').files[0];
+  $('pPhotoFile').value = '';
+  if (!f || !uid) return;
+  try {
+    const photo = await photoFromFile(f);
+    if (!photo) return; // скасовано
+    setAvatar($('pAvatar'), user().name, photo);
+    await cloud.setUserPhoto(uid, photo);
+  } catch (e) {
+    alert(e?.code === 'permission-denied' ? 'Немає доступу. Онови апку.' : (e?.message || e));
+    renderHead();
+  }
+});
 
 $('pBack').addEventListener('click', () => { closeProfile(); onBack(); });
 $('pPrev').addEventListener('click', () => { weekOffset -= 1; renderWeek(); });
@@ -94,7 +132,7 @@ $('pAccess').addEventListener('click', () => {
 function user() {
   const u = getUser(uid) || {};
   const fromShift = shifts.find((s) => s.driverName)?.driverName;
-  return { name: u.name || fromShift || 'Без імені', email: u.email || '', role: u.role || '' };
+  return { name: u.name || fromShift || 'Без імені', email: u.email || '', role: u.role || '', photo: u.photo || null };
 }
 
 const active = () => shifts.find((s) => s.end == null);
@@ -135,7 +173,7 @@ function renderTabs() {
   $('ptShifts').classList.toggle('warn', !!long);
   $('ptHours').textContent = `Сьогодні ${hm(st.today)} · місяць ${hm(st.month)}`;
   const m = +startOfMonth();
-  const km = summary(kmEntries, m, +addMonths(new Date(m), 1)).km;
+  const km = kmForDriver(kmCalc(), uid, m, +addMonths(new Date(m), 1));
   const today = +startOfDay();
   const noKm = shifts.some((x) => x.start >= today) && !kmEntries.some((e) => e.type === 'odo' && e.at === today);
   $('ptKm').textContent = noKm ? '⚠ За сьогодні не вписано' : `Цей місяць: ${new Intl.NumberFormat('uk-UA').format(km)} км`;
@@ -158,7 +196,7 @@ function renderHead() {
   $('pageTitle').textContent = u.name;
   $('pName').textContent = u.name;
   $('pEmail').textContent = u.email;
-  $('pAvatar').textContent = u.name.trim().charAt(0).toUpperCase() || '•';
+  setAvatar($('pAvatar'), u.name, u.photo);
   const off = u.role === 'disabled';
   $('pAccess').hidden = !(u.role === 'driver' || off);
   $('pAccess').textContent = off ? 'Відкрити доступ' : 'Закрити доступ';
@@ -366,6 +404,7 @@ function renderTasks(st) {
 function setKmMonth(d) {
   const cur = startOfMonth();
   kmMonth = +d > +cur ? cur : startOfMonth(d);
+  watchKmAll();
   renderKm();
 }
 $('pkPrev').addEventListener('click', () => setKmMonth(addMonths(kmMonth, -1)));
@@ -392,6 +431,8 @@ function renderKm() {
 
   const [from, to] = kmRange();
   const s = summary(kmEntries, from, to);
+  s.km = kmForDriver(kmCalc(), uid, from, to);
+  if (s.km > 0 && s.liters > 0) s.per100 = (s.liters / s.km) * 100;
   const box = $('pkStats');
   box.replaceChildren();
   for (const [label, v] of [
@@ -406,7 +447,7 @@ function renderKm() {
   }
 
   // Кожен день місяця (до сьогодні), найновіші зверху; пропущені дні видно
-  const rows = new Map(odoRows(kmEntries).map((r) => [r.at, r]));
+  const rows = new Map(odoRows(kmCalc()).filter((r) => r.uid === uid).map((r) => [r.at, r]));
   const today = +startOfDay();
   const body = $('pkRows');
   body.replaceChildren();
@@ -420,7 +461,9 @@ function renderKm() {
     const tr = el('tr', (r ? '' : 'miss') + ([0, 6].includes(new Date(d).getDay()) ? ' weekend' : ''));
     let drv = '';
     if (r) drv = r.driven != null ? `${r.driven >= 0 ? '+' : '−'}${kmNum.format(Math.abs(r.driven))}${r.span > 1 ? ` (${r.span} дн.)` : ''}` : (d === today ? 'сьогодні' : '—');
-    tr.append(el('td', '', cap(rowDay.format(d))), el('td', '', r ? kmNum.format(r.km) : '—'), el('td', 'drv', drv));
+    const kmCell = el('td', '', r ? kmNum.format(r.km) : '—');
+    if (r?.plate) kmCell.append(el('small', 'pk-plate', r.plate)); // на якій машині
+    tr.append(el('td', '', cap(rowDay.format(d))), kmCell, el('td', 'drv', drv));
     if (r?.span > 1) tr.title = drivenText(r);
     body.append(tr);
   }

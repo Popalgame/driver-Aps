@@ -2,11 +2,12 @@
 // додавання водіїв, підтвердження й закриття доступу.
 import { hm, startOfDay, startOfWeek, startOfMonth } from './time.js';
 import { summarizeByDriver } from './report.js';
-import { distanceIn, hasOdoOn } from './mileage-calc.js';
+import { kmForDriver, hasOdoOn } from './mileage-calc.js';
 import { LONG_SHIFT } from './shift-edit.js';
 import * as cloud from './cloud.js';
 import { openProfile, refreshProfile } from './profile.js';
 import { iconText } from './icons.js';
+import { avatarEl } from './photo.js';
 import * as feed from './feed.js';
 
 const $ = (id) => document.getElementById(id);
@@ -206,7 +207,9 @@ function renderHr() {
     const li = el('li', 'pend' + (off ? ' off' : ''));
     const l = el('div');
     const projs = feed.state.projects.filter((p) => (p.hr || []).includes(u.id)).map((p) => p.name);
-    l.append(el('div', 'dname', u.name || 'Без імені'), el('div', 'n', u.email || ''));
+    const nr = el('div', 'd-name-row');
+    nr.append(avatarEl(u.name, u.photo, 'sm'), el('div', 'dname', u.name || 'Без імені'));
+    l.append(nr, el('div', 'n', u.email || ''));
     l.append(el('div', off ? 'badge off' : 'badge', off ? 'Доступ закрито' : projs.length ? 'Проєкти: ' + projs.join(', ') : 'Ще не додана до проєкту'));
     const b = el('button', 'btn small ' + (off ? 'start' : 'danger'), off ? 'Відкрити доступ' : 'Закрити доступ');
     b.type = 'button';
@@ -249,8 +252,10 @@ function render() {
     const off = r.role === 'disabled';
     const li = el('li', 'driver card' + (off ? ' off' : ''));
     const head = el('div', 'row');
-    const left = el('div');
-    left.append(el('div', 'dname', r.name));
+    const left = el('div', 'd-left');
+    const nameRow = el('div', 'd-name-row');
+    nameRow.append(avatarEl(r.name, users.find((u) => u.id === r.uid)?.photo, 'sm'), el('div', 'dname', r.name));
+    left.append(nameRow);
     let status = 'Не на зміні', cls = 'badge';
     if (off) {
       status = 'Доступ закрито'; cls = 'badge off';
@@ -275,7 +280,7 @@ function render() {
     const right = el('div', 'dtotal');
     right.append(el('b', '', hm(r.total)), el('span', 'muted', `${r.count} змін(и)`));
     const mine = mileage.filter((e) => e.uid === r.uid);
-    if (mine.length) right.append(iconText(el('span', 'dkm'), 'car', `${kmFmt.format(distanceIn(mine, range[0], range[1]))} км`));
+    if (mine.length) right.append(iconText(el('span', 'dkm'), 'car', `${kmFmt.format(kmForDriver(mileage, r.uid, range[0], range[1]))} км`));
     head.append(left, right);
     li.append(head);
 

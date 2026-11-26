@@ -1,56 +1,85 @@
 // Кілометраж і заправки — чиста логіка без DOM (tests/mileage.test.mjs).
 //
-// Запис: { id, type: 'odo' | 'fuel', at (мс), km|null, liters|null, amount|null, note }
-//   odo  — показник одометра зранку; at = північ цього дня (один запис на день)
+// Запис: { id, type: 'odo' | 'fuel', at (мс), km|null, liters|null, amount|null, note, car?, plate? }
+//   odo  — показник одометра зранку; at = північ цього дня (один запис на день);
+//          car / plate — на якій машині водій їде цього дня
 //   fuel — заправка; at = момент заправки
 import { startOfDay } from './time.js';
 
 const sortAt = (a, b) => a.at - b.at;
 
-// Показники одометра по днях.
-//   diff   — від попереднього запису (скільки проїхав з минулого ранку)
-//   driven — пробіг за цей день: показник наступного запису мінус цей (null, поки наступного немає)
+// Кожен показник одометра належить машині (car — id машини, plate — номер). Пробіг рахується
+// окремо для кожної машини: показник машини A з показником машини B не порівнюється.
+// Старі записи без машини — «машина водія» (як було раніше).
+export const odoGroup = (e) => (e.car ? 'c:' + e.car : 'u:' + (e.uid || ''));
+
+// Показники одометра по днях (у порядку дат).
+//   diff   — від попереднього запису тієї самої машини
+//   driven — пробіг за цей день: наступний показник тієї самої машини мінус цей
+//            (null, поки наступного немає; наступний може вписати й інший водій)
 //   span   — скільки днів охоплює driven (1 — звичайно; більше, якщо дні пропущено)
 export function odoRows(entries) {
   const odo = entries.filter((e) => e.type === 'odo' && typeof e.km === 'number').sort(sortAt);
-  return odo.map((e, i) => {
-    const next = odo[i + 1];
-    return {
-      ...e,
-      diff: i ? e.km - odo[i - 1].km : null,
-      driven: next ? next.km - e.km : null,
-      span: next ? Math.max(1, Math.round((next.at - e.at) / 86400000)) : null,
-    };
-  });
+  const groups = new Map();
+  for (const e of odo) {
+    const k = odoGroup(e);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(e);
+  }
+  const rows = new Map();
+  for (const list of groups.values()) {
+    list.forEach((e, i) => {
+      const next = list[i + 1];
+      rows.set(e, {
+        ...e,
+        diff: i ? e.km - list[i - 1].km : null,
+        driven: next ? next.km - e.km : null,
+        span: next ? Math.max(1, Math.round((next.at - e.at) / 86400000)) : null,
+      });
+    });
+  }
+  return odo.map((e) => rows.get(e));
 }
 
-// Пробіг кожного водія по днях: Map(uid → Map(dayStart → км)); пробіг дня D = ранок(D+1) − ранок(D).
-// Якщо дні пропущено, пробіг записується на перший з них.
+// Пробіг кожного водія по днях: Map(uid → Map(dayStart → км)); пробіг дня D = ранок(D+1) − ранок(D)
+// тієї самої машини. Якщо дні пропущено, пробіг записується на перший з них.
 export function drivenByDay(entries) {
-  const byUid = new Map();
-  for (const e of entries) {
-    if (!byUid.has(e.uid)) byUid.set(e.uid, []);
-    byUid.get(e.uid).push(e);
-  }
   const out = new Map();
-  for (const [uid, list] of byUid) {
-    const m = new Map();
-    for (const r of odoRows(list)) if (r.driven != null) m.set(r.at, r.driven);
-    out.set(uid, m);
+  for (const r of odoRows(entries)) {
+    if (!out.has(r.uid)) out.set(r.uid, new Map());
+    if (r.driven != null) out.get(r.uid).set(r.at, (out.get(r.uid).get(r.at) || 0) + r.driven);
   }
   return out;
 }
 
-// Пробіг за період [from, to): від першого показника в періоді до першого показника
-// після періоду (ранок наступного дня), а якщо його ще немає — до останнього в періоді
+// Пробіг водія за період [from, to) з урахуванням машин: сума пробігів його показників у періоді.
+// entries — записи всіх водіїв (щоб наступний показник машини міг бути від іншого водія).
+export function kmForDriver(entries, uid, from, to) {
+  return odoRows(entries).filter((r) => r.uid === uid && r.at >= from && r.at < to && r.driven != null)
+    .reduce((a, r) => a + r.driven, 0);
+}
+
+// Пробіг за період [from, to): для кожної машини — від першого показника в періоді до першого
+// показника після періоду (ранок наступного дня), а якщо його ще немає — до останнього в періоді
 export function distanceIn(entries, from, to) {
-  const odo = entries.filter((e) => e.type === 'odo' && typeof e.km === 'number').sort(sortAt);
-  const first = odo.find((e) => e.at >= from && e.at < to);
-  if (!first) return 0;
-  const after = odo.find((e) => e.at >= to);
-  const inside = odo.filter((e) => e.at >= from && e.at < to);
-  const last = after || inside[inside.length - 1];
-  return Math.max(0, last.km - first.km);
+  const groups = new Map();
+  for (const e of entries) {
+    if (e.type !== 'odo' || typeof e.km !== 'number') continue;
+    const k = odoGroup(e);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(e);
+  }
+  let total = 0;
+  for (const list of groups.values()) {
+    const odo = list.sort(sortAt);
+    const first = odo.find((e) => e.at >= from && e.at < to);
+    if (!first) continue;
+    const after = odo.find((e) => e.at >= to);
+    const inside = odo.filter((e) => e.at >= from && e.at < to);
+    const last = after || inside[inside.length - 1];
+    total += Math.max(0, last.km - first.km);
+  }
+  return total;
 }
 
 export function fuelIn(entries, from, to) {
@@ -83,10 +112,23 @@ export function byMonth(entries) {
   return out;
 }
 
-// Останній показник до дня dayStart (для підказки «учора» і перевірки)
-export function previousOdo(entries, dayStart) {
+// Останній показник до дня dayStart (для підказки «учора» і перевірки).
+// car — лише цієї машини (якщо її записів ще немає — останній старий запис без машини).
+export function previousOdo(entries, dayStart, car) {
   const odo = entries.filter((e) => e.type === 'odo' && typeof e.km === 'number' && e.at < dayStart).sort(sortAt);
-  return odo[odo.length - 1] || null;
+  if (car === undefined) return odo[odo.length - 1] || null;
+  const same = odo.filter((e) => e.car === car);
+  if (same.length) return same[same.length - 1];
+  const legacy = odo.filter((e) => !e.car);
+  return legacy[legacy.length - 1] || null;
+}
+
+// Яка машина в цього водія «звична»: учорашня (остання вписана) або закріплена керівником
+export function defaultCar(entries, cars, uid) {
+  const odo = entries.filter((e) => e.type === 'odo' && e.car).sort(sortAt);
+  const last = odo[odo.length - 1]?.car;
+  if (last && cars.some((c) => c.id === last)) return last;
+  return cars.find((c) => c.driver === uid)?.id || (cars.length === 1 ? cars[0].id : null);
 }
 
 export const dayKey = (ms) => {
@@ -106,3 +148,6 @@ export const drivenText = (r) => {
 // при першому «Почати роботу», поки за сьогодні показника немає.
 export const hasOdoOn = (entries, dayStart) =>
   entries.some((e) => e.type === 'odo' && e.at === dayStart && typeof e.km === 'number');
+
+// Свої записи + показники машин від інших водіїв (без дублів): для підрахунку пробігу
+export const withCarKm = (own, carKm, uid) => [...own, ...carKm.filter((e) => e.uid !== uid && !own.some((o) => o.id === e.id))];

@@ -2,7 +2,7 @@
 import { breakMs, workMs, workInRange, startOfDay } from './time.js';
 import { driverStats, summarizeByDriver } from './report.js';
 import { buildXlsx, downloadXlsx } from './xlsx.js';
-import { odoRows, byMonth, drivenByDay, distanceIn } from './mileage-calc.js';
+import { odoRows, byMonth, drivenByDay, kmForDriver } from './mileage-calc.js';
 
 const wdFmt = new Intl.DateTimeFormat('uk-UA', { weekday: 'long' });
 const wdShort = new Intl.DateTimeFormat('uk-UA', { weekday: 'short' });
@@ -181,7 +181,7 @@ export function exportTeam(shifts, users, from, to, periodLabel, mileage = []) {
       columns: [{ header: 'Водій', width: 24, type: 'text' }, ...dayCols, { header: 'Разом, км', width: 11, type: 'int' }],
       rows: kmUids.map((uid) => {
         const m = driven.get(uid) || new Map();
-        return [nameOf(uid), ...days.map((d) => m.get(d) ?? null), distanceIn(mileage.filter((e) => e.uid === uid), from, to)];
+        return [nameOf(uid), ...days.map((d) => m.get(d) ?? null), kmForDriver(mileage, uid, from, to)];
       }),
       total: { label: 'Разом', sum: days.map((_, i) => i + 1).concat(days.length + 1) },
     });

@@ -2,9 +2,9 @@
 // Один набір підписок на всю апку — їх використовують календар, проєкти і сповіщення.
 import * as cloud from './cloud.js';
 
-export const state = { user: null, projects: [], events: [], users: [], notices: [], error: null, loaded: false };
+export const state = { user: null, projects: [], events: [], users: [], notices: [], cars: [], carKm: [], error: null, loaded: false };
 const subs = new Set();
-let stops = [], stopEvents = null, eventsFor = '';
+let stops = [], stopEvents = null, eventsFor = '', stopCarKm = null, carKmFor = '';
 
 const emit = () => { for (const cb of subs) cb(state); };
 const fail = (e) => { console.error(e); state.error = e; emit(); };
@@ -35,6 +35,20 @@ export function startFeed(profile) {
   }, fail));
   if (manager) stops.push(cloud.watchUsers((list) => { state.users = list; emit(); }, fail));
   // Оголошення: помилку (напр., ще не оновлені правила) не показуємо в календарі — лише в консолі
+  // Машини: керівнику — усі, водію — своя (кадрам не потрібні)
+  if (profile.role !== 'hr') {
+    stops.push(cloud.watchCars(profile.uid, profile.role, (list) => {
+      state.cars = list;
+      // Показники одометра цих машин від усіх водіїв — перепідписка, коли змінився список машин
+      const key = list.map((c) => c.id).sort().join(',');
+      if (key !== carKmFor) {
+        stopCarKm?.();
+        carKmFor = key;
+        stopCarKm = cloud.watchCarMileage(list.map((c) => c.id), (km) => { state.carKm = km; emit(); }, (e) => console.error(e));
+      }
+      emit();
+    }, (e) => console.error(e)));
+  }
   stops.push(cloud.watchNotices(profile.uid, profile.role, (list) => { state.notices = list; emit(); }, (e) => console.error(e)));
   emit();
 }
@@ -42,8 +56,9 @@ export function startFeed(profile) {
 export function stopFeed() {
   for (const s of stops) s();
   stopEvents?.();
-  stops = []; stopEvents = null; eventsFor = '';
-  Object.assign(state, { user: null, projects: [], events: [], users: [], notices: [], error: null, loaded: false });
+  stopCarKm?.();
+  stops = []; stopEvents = null; eventsFor = ''; stopCarKm = null; carKmFor = '';
+  Object.assign(state, { user: null, projects: [], events: [], users: [], notices: [], cars: [], carKm: [], error: null, loaded: false });
   emit();
 }
 

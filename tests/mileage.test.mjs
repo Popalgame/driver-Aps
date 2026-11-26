@@ -51,3 +51,28 @@ test('по місяцях і попередній показник', () => {
   assert.equal(previousOdo(entries, day(9, 1)), null);
   assert.equal(dayKey(day(10, 4)), '2026-11-04');
 });
+
+test('пробіг рахується окремо для кожної машини', async () => {
+  const { kmForDriver, defaultCar } = await import('../site/src/mileage-calc.js');
+  const r = (uid, d, km, car) => ({ uid, type: 'odo', at: day(10, d), km, car, note: '' });
+  // Андрій: 1-го на A, 2-го на B, 3-го знову на A. Богдан 2-го взяв A.
+  const all = [r('a', 1, 1000, 'A'), r('a', 2, 5000, 'B'), r('b', 2, 1100, 'A'), r('a', 3, 1250, 'A'), r('a', 4, 5200, 'B')];
+  const rows = odoRows(all);
+  const by = (uid, d) => rows.find((x) => x.uid === uid && x.at === day(10, d));
+  assert.equal(by('a', 1).driven, 100);   // A: 1000 → 1100 (наступний показник A — від Богдана)
+  assert.equal(by('a', 2).driven, 200);   // B: 5000 → 5200
+  assert.equal(by('b', 2).driven, 150);   // A: 1100 → 1250
+  assert.equal(by('a', 3).diff, 150);
+  assert.equal(kmForDriver(all, 'a', day(10, 1), day(10, 5)), 300);
+  assert.equal(kmForDriver(all, 'b', day(10, 1), day(10, 5)), 150);
+  assert.equal(drivenByDay(all).get('a').get(day(10, 2)), 200);
+  // Лише свої записи водія: пробіг кожної машини окремо, без змішування 1000 → 5000
+  const mine = all.filter((e) => e.uid === 'a');
+  assert.equal(odoRows(mine).find((x) => x.at === day(10, 2)).diff, null);
+  assert.equal(distanceIn(mine, day(10, 1), day(10, 5)), 250 + 200);
+  assert.equal(previousOdo(mine, day(10, 4), 'A').km, 1250);
+  assert.equal(previousOdo(mine, day(10, 4), 'B').km, 5000);
+  assert.equal(previousOdo([odo(10, 1, 77)], day(10, 4), 'B').km, 77); // старий запис без машини
+  assert.equal(defaultCar(mine, [{ id: 'A' }, { id: 'B' }], 'a'), 'B');
+  assert.equal(defaultCar([], [{ id: 'A', driver: 'a' }, { id: 'B' }], 'a'), 'A');
+});

@@ -1,6 +1,7 @@
 // Вкладка «Налаштування»: профіль, пароль, налаштування апки на цьому пристрої, про апку.
 import * as cloud from './cloud.js';
 import { VERSION_LABEL } from './version.js';
+import { photoFromFile, setAvatar } from './photo.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
@@ -46,7 +47,9 @@ export function showSettings(p) {
     $('sEmail').textContent = p.email || '';
     $('sRole').textContent = ROLE_NAMES[p.role] || '';
     $('sUser').value = p.email || '';
+    renderPhoto();
   }
+  $('sPhotoMsg').textContent = '';
   for (const id of ['sNameMsg', 'sPassMsg']) $(id).textContent = '';
   $('sPassForm').reset();
   $('pConfirm').checked = !!prefs.confirmEnd;
@@ -76,6 +79,39 @@ $('sNameForm').addEventListener('submit', async (e) => {
     if (btn) btn.disabled = false;
   }
 });
+
+// ---------- Фото ----------
+function renderPhoto() {
+  setAvatar($('sPhotoBtn'), profile?.name, profile?.photo);
+  $('sPhotoDel').hidden = !profile?.photo;
+  $('sPhotoSet').lastChild.textContent = profile?.photo ? ' Змінити фото' : ' Додати фото';
+}
+const pickPhoto = () => $('sPhotoFile').click();
+$('sPhotoBtn').addEventListener('click', pickPhoto);
+$('sPhotoSet').addEventListener('click', pickPhoto);
+async function savePhoto(photo) {
+  msg('sPhotoMsg', 'Зберігаю…', true);
+  try {
+    await cloud.setUserPhoto(profile.uid, photo);
+    profile.photo = photo;
+    renderPhoto();
+    onNameChanged(profile);
+    msg('sPhotoMsg', photo ? '✓ Фото збережено.' : 'Фото прибрано.', true);
+  } catch (err) {
+    console.error(err);
+    msg('sPhotoMsg', err?.code === 'permission-denied' ? 'Немає доступу — онови апку.' : 'Не вдалося: ' + (err?.message || err));
+  }
+}
+$('sPhotoFile').addEventListener('change', async () => {
+  const f = $('sPhotoFile').files[0];
+  $('sPhotoFile').value = '';
+  if (!f || !profile) return;
+  try {
+    const photo = await photoFromFile(f);
+    if (photo) await savePhoto(photo);
+  } catch (err) { msg('sPhotoMsg', err.message); }
+});
+$('sPhotoDel').addEventListener('click', () => { if (profile && confirm('Прибрати фото?')) savePhoto(null); });
 
 $('sPassForm').addEventListener('submit', async (e) => {
   e.preventDefault();
